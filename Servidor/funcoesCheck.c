@@ -26,7 +26,7 @@ void  checkArgs(int x, char** args) {
 
 		if (checkIfNumero(args[1], args[2]) == 0) {
 
-			if (!criarRegKeys(atoi(args[1]), atoi(args[2]))) {
+			if (criarRegKeys(_tstoi(args[1]), _tstoi(args[2]))) {
 				_tprintf_s(TEXT("Falha no accesso à informação relativamente às faixas de rodagem ou velocidade inicial dos carros"));
 			}
 		}
@@ -60,10 +60,10 @@ int criarRegKeys(int arg1, int arg2) {
 	}
 
 	if (disposition == REG_CREATED_NEW_KEY) {
-		_tprintf_s(TEXT("A chave foi criada.\n"));
+		//_tprintf_s(TEXT("A chave foi criada.\n"));
 	}
 	else if (disposition == REG_OPENED_EXISTING_KEY) {
-		_tprintf_s(TEXT("A chave já existe e foi aberta.\n"));
+		//_tprintf_s(TEXT("A chave já existe e foi aberta.\n"));
 	}
 
 	ResultKey = RegSetValueEx(

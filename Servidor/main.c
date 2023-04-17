@@ -10,9 +10,9 @@ int _tmain(int argc, TCHAR** argv) {
 	if (x1 == -1 || x2 == -1 || x3 == -1)
 		ExitProcess(-1);
 #endif
-
+	FaixaVelocity dados;
 	checkStart();
-	checkArgs(argc - 1, argv);
+	checkArgs(argc - 1, argv, &dados);
 
 	while (1) {
 		TCHAR hi[20];

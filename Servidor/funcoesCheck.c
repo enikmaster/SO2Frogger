@@ -1,8 +1,7 @@
 #include "servidor.h"
 
-void checkStart() {
-	HANDLE hMutex;
-	hMutex = CreateMutex(NULL, FALSE, TEXT(programa));
+HANDLE checkStart() {
+	HANDLE hMutex = CreateMutex(NULL, FALSE, TEXT(programa));
 	if (hMutex == NULL) {
 		_tprintf_s(TEXT("Erro no handle"));
 		ExitProcess(0);
@@ -12,8 +11,9 @@ void checkStart() {
 		CloseHandle(hMutex);
 		ExitProcess(0);
 	}
-	//temos de fechar depois o Mutex;
+	return hMutex;
 }
+
 void checkArgs(int x, char** args, FaixaVelocity* dados) {
 	//arg[1] = nº Faixas de Rodagem 
 	//arg[2] = Velocidade dos carros inicial

@@ -1,5 +1,7 @@
 #include "servidor.h"
 
+//vamos ter uma função para fechar tudo
+
 int _tmain(int argc, TCHAR** argv) {
 
 #ifdef UNICODE
@@ -10,14 +12,18 @@ int _tmain(int argc, TCHAR** argv) {
 	if (x1 == -1 || x2 == -1 || x3 == -1)
 		ExitProcess(-1);
 #endif
+	HANDLE hMutex = checkStart();
 	FaixaVelocity dados;
-	checkStart();
 	checkArgs(argc - 1, argv, &dados);
+
+	//se ok lançar jogo numa thread e depois lançar outra thread para partilha de memória
 
 	while (1) {
 		TCHAR hi[20];
 		_fgetts(hi, 20, stdin);
+		CloseHandle(hMutex);
 		return 0;
 	}
+
 	return 0;
 }

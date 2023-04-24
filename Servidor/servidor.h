@@ -21,7 +21,7 @@ typedef struct faixaVelocity  {
 } FaixaVelocity;
 
 //
-void checkStart(); //verificar se programa tem condições de ser executado
+HANDLE checkStart(); //verificar se programa tem condições de ser executado
 void checkArgs(int x, TCHAR** args, FaixaVelocity* dados); //verificar argumentos
 int checkIfNumero(char* arg1, char* arg2); //verificar se args sao numeros
 int criarRegKeys(int arg1, int arg2); //criar RegKeys

@@ -21,6 +21,9 @@
     <ClCompile Include="funcoesCheck.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="boarGameThread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="servidor.h">

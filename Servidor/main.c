@@ -14,9 +14,9 @@ int _tmain(int argc, TCHAR** argv) {
 #endif
 	HANDLE hMutex = checkStart();
 	FaixaVelocity dados;
+	srand(time(NULL));
 	checkArgs(argc - 1, argv, &dados);
-
-	//se ok lançar jogo numa thread e depois lançar outra thread para partilha de memória
+	lancaThread(dados);
 
 	while (1) {
 		TCHAR hi[20];

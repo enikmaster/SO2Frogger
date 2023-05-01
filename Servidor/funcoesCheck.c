@@ -15,8 +15,8 @@ HANDLE checkStart() {
 }
 
 void checkArgs(int x, char** args, FaixaVelocity* dados) {
-	//arg[1] = nº Faixas de Rodagem 
-	//arg[2] = Velocidade dos carros inicial
+	//arg[1] = nº Faixas de Rodagem  com MAXIMO DE 10 
+	//arg[2] = Velocidade dos carros inicial  
 	if (x == 0) // Não recebeu os argumentos, usar valores predefenidos
 		setDadosEstrutura(dados);
 	else if (x == 2) {
@@ -141,7 +141,9 @@ void setDadosEstrutura(FaixaVelocity* dados) {
 		else
 			_tprintf_s(TEXT("Erro a criar/abrir key (%d)\n"), GetLastError());
 	}
-	else
-		_tprintf_s(TEXT("erro alternativo"));
+	else { //Não existe regkey ainda
+		dados->faixa = 10;
+		dados->velocity = 1;
+	}
 	RegCloseKey(temp);
 }

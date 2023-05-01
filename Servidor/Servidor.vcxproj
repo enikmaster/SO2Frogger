@@ -127,6 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="boarGameThread.c" />
     <ClCompile Include="funcoesCheck.c" />
     <ClCompile Include="main.c" />
   </ItemGroup>

@@ -59,7 +59,7 @@ int criarRegKeys(int arg1, int arg2); //criar RegKeys
 void setDadosEstrutura(FaixaVelocity* dados); // preenche a estrutura com os dados para Faixa e Velocity
 
 // threads
-void lancaThread(FaixaVelocity dados);
+void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout);
 
 
 #endif

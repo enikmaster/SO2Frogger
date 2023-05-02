@@ -12,12 +12,21 @@ int _tmain(int argc, TCHAR** argv) {
 	if (x1 == -1 || x2 == -1 || x3 == -1)
 		ExitProcess(-1);
 #endif
+	srand(time(NULL));
 	HANDLE hMutex = checkStart();
 	FaixaVelocity dados;
-	srand(time(NULL));
 	checkArgs(argc - 1, argv, &dados);
-	lancaThread(dados);
 
+	COORD posI = { 0,0 };
+	DWORD res;
+	HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+	BOOL succeed = FillConsoleOutputCharacter(hStdout, _T(' '), JANELAX * JANELAY, posI, &res);
+	
+	if (!succeed) {
+		_tprintf("Não reune as condições");
+		ExitProcess(1);
+	}
+	//lancaThread(dados, posI, hStdout);
 	while (1) {
 		TCHAR hi[20];
 		_fgetts(hi, 20, stdin);

@@ -13,20 +13,27 @@ int _tmain(int argc, TCHAR** argv) {
 		ExitProcess(-1);
 #endif
 	srand(time(NULL));
-	HANDLE hMutex = checkStart();
-	FaixaVelocity dados;
-	checkArgs(argc - 1, argv, &dados);
-
+	
 	COORD posI = { 0,0 };
 	DWORD res;
 	HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-	BOOL succeed = FillConsoleOutputCharacter(hStdout, _T(' '), JANELAX * JANELAY, posI, &res);
-	
+	CONSOLE_SCREEN_BUFFER_INFO csbi;
+	posI.X = 0;
+	posI.Y = 0;
+	BOOL succeed = FillConsoleOutputCharacter(hStdout, _T(' '), 50 * 50, posI, &res);
+
 	if (!succeed) {
-		_tprintf("Não reune as condições");
-		ExitProcess(1);
+		_tprintf_s(TEXT("Não reune condições de continuar!\n"));
+		ExitProcess(-1);
 	}
-	//lancaThread(dados, posI, hStdout);
+	posI.X = 0;
+	posI.Y = 0;
+	SetConsoleCursorPosition(hStdout, posI);
+	
+	HANDLE hMutex = checkStart();
+	FaixaVelocity dados;
+	checkArgs(argc - 1, argv, &dados);
+	lancaThread(dados, posI, hStdout);
 	while (1) {
 		TCHAR hi[20];
 		_fgetts(hi, 20, stdin);

@@ -3,7 +3,9 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 	Info* pData = (Info*)param;
 	COORD pos;
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
+
 	WaitForSingleObject(pData->hTimer, INFINITE);
+
 	pos.X = 0;
 	pos.Y = pData->nFaixaResp;
 	int xtam[3];
@@ -15,15 +17,14 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 		SetConsoleCursorPosition(pData->hStdout, pos);
 		SetConsoleTextAttribute(pData->hStdout, FOREGROUND_BLUE << pData->id);
 		for (i = 0; i < columns; i++) {
-			if (lstrcmpW(pData->arrayGame[pos.X][pos.Y], TEXT("C")) == 0) {
-				pData->arrayGame[pos.X][pos.Y] = TEXT("");
-				pData->arrayGame[pos.X + 1][pos.Y] = pData->o.c;
-			}
+				pData->arrayGame[i][pData->nFaixaResp] = '_';
+				pData->arrayGame[i + 1][pData->nFaixaResp] = pData->o.c ;
 		}
 		_tprintf_s(TEXT("%c"), pData->arrayGame[pos.X][pos.Y]);
-		if(pos.X == 19)
+		if (pos.X == 19)
 			pos.X = 0;
-		pos.X++;
+		else
+			pos.X++;
 		SetConsoleTextAttribute(pData->hStdout, csbi.wAttributes);
 		SetConsoleCursorPosition(pData->hStdout, csbi.dwCursorPosition);
 		ReleaseMutex(pData->hMutexArray);
@@ -52,11 +53,23 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 			boardGameArray[i][j] = '_';
 		}
 	}
-	posI.X =0;
+	posI.X = 0;
 	posI.Y = 10;
-
+	CONSOLE_SCREEN_BUFFER_INFO csbi;
+	GetConsoleScreenBufferInfo(hStdout, &csbi);
 	SetConsoleCursorPosition(hStdout, posI);
 	
+	
+	for (int i = 0; i < dados.faixa; i++) {
+		for (int j = 0; j < columns; j++) {
+			_tprintf_s(TEXT("%c"),boardGameArray[i][j]);
+		}
+		_tprintf_s(TEXT("\n"));
+	}
+	
+
+	SetConsoleCursorPosition(hStdout, csbi.dwCursorPosition);
+
 	Info* send = (Info*)malloc(dados.faixa * sizeof(Info));
 	
 	if (send == NULL) {
@@ -92,18 +105,14 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	}
 	LARGE_INTEGER liArranca;
 	liArranca.QuadPart = -5 * 10000000;
-	do {
-		for (int i = 0; i < 20; i++) {
-			for (int j = 0; j < dados.faixa; i++) {
-				//_tprintf_s(TEXT("%c"), boardGameArray[i][j]);
-			}
-			//_tprintf_s("\n");
-		}
-	} while (1);
 	SetWaitableTimer(hTimer, (LARGE_INTEGER*)&liArranca, 0, NULL, NULL, FALSE);
+	do {
+		
+	} while (1);
+	
 	CloseHandle(hMutexArray);
 	CloseHandle(hTimer);
 	CloseHandle(hThreads);
-	return 0;
-
+	
+	return;
 }

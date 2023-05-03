@@ -2,7 +2,7 @@
 
 DWORD WINAPI ThreadsFaixa(LPVOID param) {
 	Info* pData = (Info*)param;
-	COORD pos = {0,0};
+	COORD pos = { 0,0 };
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
 
 	WaitForSingleObject(pData->hTimer, INFINITE);
@@ -13,36 +13,42 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 		if (pData->arrayGame == NULL) {
 			_tprintf_s(TEXT("e nulo"));
 		}
-		
+
 		WaitForSingleObject(pData->hMutexArray, INFINITE);
 		/*
 		GetConsoleScreenBufferInfo(pData->hStdout, &csbi);
 		SetConsoleCursorPosition(pData->hStdout, pos);
 		//SetConsoleTextAttribute(pData->hStdout, FOREGROUND_BLUE << pData->id);
 		*/
-		for (i = 0; i < COLUMNS-1; i++) {
+		for (i = 0; i < COLUMNS - 1; i++) {
+			TCHAR a = pData->arrayGame[pData->nFaixaResp][i];
+			//if(_tcscmp(a, TEXT(" ")) != 0) {
 			pData->arrayGame[pData->nFaixaResp][i] = _T(' ');
-				//pData->arrayGame[pData->nFaixaResp][i+1] = pData->o.s ;
-
+			if (i <= COLUMNS - 2)
+				pData->arrayGame[pData->nFaixaResp][i + 1] = pData->o.c;
+			else {
+				pData->arrayGame[pData->nFaixaResp][0] = pData->o.c;
+			}
+			//}
 		}
-		
-		//pData->arrayGame[0][0] = TEXT(' ');
 
-		if (pos.X == 19)
-			pos.X = 0;
-		else
-			pos.X++;
+		//pData->arrayGame[0][0] = TEXT(' ');
 		/*
 		SetConsoleTextAttribute(pData->hStdout, csbi.wAttributes);
 		SetConsoleCursorPosition(pData->hStdout, csbi.dwCursorPosition);
 		*/
 		ReleaseMutex(pData->hMutexArray);
 		Sleep(pData->veloc);
+		break;
 	} while (pData->end);
 	WaitForSingleObject(pData->hMutexArray, INFINITE);
 	ExitThread(1);
 }
 void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
+	objs o;
+	o.c = TEXT('C');
+	o.o = TEXT('O');
+	o.s = TEXT('S');
 
 	TCHAR** boardGameArray = (TCHAR**)malloc(sizeof(TCHAR*) * dados.faixa);
 	for (int i = 0; i < dados.faixa; i++) {
@@ -51,8 +57,12 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 			printf("Memory allocation failed.\n");
 			return 1;
 		}
+		DWORD random_num = rand() % (20 - 0 + 1) ;
 		for (int j = 0; j < COLUMNS; j++) {
-			boardGameArray[i][j] = 'A';
+			if(j == random_num)
+				boardGameArray[i][j] = o.c;
+			else
+				boardGameArray[i][j] = ' ';
 		}
 		boardGameArray[i][COLUMNS] = '\0';
 	}
@@ -96,16 +106,11 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 		printf_s(TEXT("Erro a criar condições para o jogo."));
 		ExitProcess(1);
 	}
-
-	objs o;
-	o.c = TEXT('C');
-	o.o = TEXT('O');
-	o.s = TEXT('S');
 	
 	//Preencher array randomly 
 	
 	//
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < dados.faixa; i++) {
 		send[i].id = i;
 		send[i].nFaixaResp = dados.faixa - i -1 ;
 		send[i].arrayGame = boardGameArray;
@@ -128,7 +133,19 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	liArranca.QuadPart = -5 * 10000000;
 	SetWaitableTimer(hTimer, (LARGE_INTEGER*)&liArranca, 0, NULL, NULL, FALSE);
 	do {
-		
+		posI.X = 0;
+		posI.Y = 7;
+		CONSOLE_SCREEN_BUFFER_INFO csbi;
+		GetConsoleScreenBufferInfo(hStdout, &csbi);
+		SetConsoleCursorPosition(hStdout, posI);
+		_tprintf_s(TEXT("-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
+		for (int i = 0; i < dados.faixa; i++) {
+			for (int j = 0; j < 20; j++) {
+				_tprintf_s(TEXT(" %c "), boardGameArray[i][j]);
+			}
+			_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    -  \n"));
+
+		}
 	} while (1);
 	
 	CloseHandle(hMutexArray);

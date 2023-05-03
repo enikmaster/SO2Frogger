@@ -14,7 +14,7 @@
 #define key1is "Software\\TP"
 #define keyValueNameF "Faixas" 
 #define keyValueNameV "Velocity"
-#define columns 20
+#define COLUMNS 20
 #define JANELAX 60 
 #define JANELAY 40
 
@@ -29,7 +29,7 @@ typedef struct POS { //posição para array, cada thread trada de escrever uma fai
 }pos;
 
 typedef struct BoardGame {
-	DWORD** gameBoardArray;
+	TCHAR** gameBoardArray;
 	pos d;
 	HANDLE hMutexArray, hTimerBoard;
 }BoardGame;
@@ -40,8 +40,10 @@ typedef struct objectos {
 	TCHAR o; // objeto
 } objs;
 
+//tenho de escrever 
+
 typedef struct Info {
-	DWORD** arrayGame;
+	TCHAR** arrayGame;
 	DWORD veloc; //velocidade 
 	DWORD nFaixaResp; //faixa de atuacao
 	DWORD id; //id

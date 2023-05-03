@@ -1,32 +1,41 @@
 ﻿#include "servidor.h"
+
 DWORD WINAPI ThreadsFaixa(LPVOID param) {
 	Info* pData = (Info*)param;
-	COORD pos;
+	COORD pos = {0,0};
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
 
 	WaitForSingleObject(pData->hTimer, INFINITE);
-
-	pos.X = 0;
-	pos.Y = pData->nFaixaResp;
 	int xtam[3];
 	TCHAR tam[20];
 	int i = 0, j = 0;
 	do {
+		if (pData->arrayGame == NULL) {
+			_tprintf_s(TEXT("e nulo"));
+		}
+		
 		WaitForSingleObject(pData->hMutexArray, INFINITE);
+		/*
 		GetConsoleScreenBufferInfo(pData->hStdout, &csbi);
 		SetConsoleCursorPosition(pData->hStdout, pos);
-		SetConsoleTextAttribute(pData->hStdout, FOREGROUND_BLUE << pData->id);
-		for (i = 0; i < columns; i++) {
-				pData->arrayGame[i][pData->nFaixaResp] = '_';
-				pData->arrayGame[i + 1][pData->nFaixaResp] = pData->o.c ;
+		//SetConsoleTextAttribute(pData->hStdout, FOREGROUND_BLUE << pData->id);
+		*/
+		for (i = 0; i < COLUMNS-1; i++) {
+			pData->arrayGame[pData->nFaixaResp][i] = _T(' ');
+				//pData->arrayGame[pData->nFaixaResp][i+1] = pData->o.s ;
+
 		}
-		_tprintf_s(TEXT("%c"), pData->arrayGame[pos.X][pos.Y]);
+		
+		//pData->arrayGame[0][0] = TEXT(' ');
+
 		if (pos.X == 19)
 			pos.X = 0;
 		else
 			pos.X++;
+		/*
 		SetConsoleTextAttribute(pData->hStdout, csbi.wAttributes);
 		SetConsoleCursorPosition(pData->hStdout, csbi.dwCursorPosition);
+		*/
 		ReleaseMutex(pData->hMutexArray);
 		Sleep(pData->veloc);
 	} while (pData->end);
@@ -34,37 +43,48 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 	ExitThread(1);
 }
 void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
-	TCHAR(*boardGameArray)[columns] = (TCHAR(*)[columns])malloc(dados.faixa * columns * sizeof(TCHAR));
+
+	TCHAR** boardGameArray = (TCHAR**)malloc(sizeof(TCHAR*) * dados.faixa);
+	for (int i = 0; i < dados.faixa; i++) {
+		boardGameArray[i] = (TCHAR*)malloc(sizeof(TCHAR) * (COLUMNS+1)); 
+		if (boardGameArray[i] == NULL) {
+			printf("Memory allocation failed.\n");
+			return 1;
+		}
+		for (int j = 0; j < COLUMNS; j++) {
+			boardGameArray[i][j] = 'A';
+		}
+		boardGameArray[i][COLUMNS] = '\0';
+	}
+
 	if (boardGameArray == NULL) {
 		_tprintf_s(TEXT("Erro a criar memória para o jogo\n"));
 		ExitProcess(-1);
 	}
+
 	HANDLE hMutexArray = CreateMutex(NULL, FALSE, NULL);
 	HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
+
 	HANDLE* hThreads = (HANDLE*)malloc(dados.faixa * sizeof(HANDLE));
+	
 	if (hMutexArray == NULL || hTimer == NULL || hThreads ==NULL) {
 		_tprintf_s(TEXT("Erro a criar condições para o jogo."));
 		ExitProcess(1);
 		//Criar funcao para encerrar tudo
 	}
 
-	for (int i = 0; i < dados.faixa; i++) {
-		for (int j = 0; j < columns; j++) {
-			boardGameArray[i][j] = '_';
-		}
-	}
 	posI.X = 0;
-	posI.Y = 10;
+	posI.Y = 7;
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
 	GetConsoleScreenBufferInfo(hStdout, &csbi);
 	SetConsoleCursorPosition(hStdout, posI);
-	
-	
+	_tprintf_s(TEXT("-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
 	for (int i = 0; i < dados.faixa; i++) {
-		for (int j = 0; j < columns; j++) {
-			_tprintf_s(TEXT("%c"),boardGameArray[i][j]);
+		for (int j = 0; j < 20; j++) {
+			_tprintf_s(TEXT(" %c "),boardGameArray[i][j]);
 		}
-		_tprintf_s(TEXT("\n"));
+		_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    -  \n"));
+
 	}
 	
 
@@ -78,20 +98,20 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	}
 
 	objs o;
-	o.c = 'C';
-	o.o = 'O';
-	o.s = 'S';
+	o.c = TEXT('C');
+	o.o = TEXT('O');
+	o.s = TEXT('S');
 	
 	//Preencher array randomly 
 	
-	//janela 60x40 logo guardar as ultimas 4 linhas para admin escrever 
+	//
 	for (int i = 0; i < 3; i++) {
 		send[i].id = i;
-		send[i].nFaixaResp = JANELAY - dados.faixa - i - 1;
+		send[i].nFaixaResp = dados.faixa - i -1 ;
 		send[i].arrayGame = boardGameArray;
 		send[i].o = o;
 		send[i].veloc = dados.faixa;
-		send[i].nFaixaResp = 0;
+		//send[i].nFaixaResp = 0;
 		send[i].hMutexArray = hMutexArray;
 		send[i].hTimer = hTimer;
 		send[i].hStdout = hStdout;
@@ -103,6 +123,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 			ExitProcess(-1);
 		}
 	}
+
 	LARGE_INTEGER liArranca;
 	liArranca.QuadPart = -5 * 10000000;
 	SetWaitableTimer(hTimer, (LARGE_INTEGER*)&liArranca, 0, NULL, NULL, FALSE);

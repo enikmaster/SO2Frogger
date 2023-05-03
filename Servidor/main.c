@@ -32,8 +32,11 @@ int _tmain(int argc, TCHAR** argv) {
 	
 	HANDLE hMutex = checkStart();
 	FaixaVelocity dados;
+	//
 	checkArgs(argc - 1, argv, &dados);
+	//
 	lancaThread(dados, posI, hStdout);
+
 	while (1) {
 		TCHAR hi[20];
 		_fgetts(hi, 20, stdin);

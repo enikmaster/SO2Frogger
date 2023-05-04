@@ -1,5 +1,6 @@
 #include "servidor.h"
 
+// verifica se mutex foi criado com sucesso
 HANDLE checkStart() {
 	HANDLE hMutex = CreateMutex(NULL, FALSE, TEXT(programa));
 	if (hMutex == NULL) {
@@ -14,13 +15,15 @@ HANDLE checkStart() {
 	return hMutex;
 }
 
+// verifica os dados recebidos
 void checkArgs(int x, char** args, FaixaVelocity* dados) {
-	//arg[1] = nº Faixas de Rodagem  com MAXIMO DE 10 
-	//arg[2] = Velocidade dos carros inicial  
+	//args[1] = nº Faixas de Rodagem com MAXIMO DE 10 
+	//args[2] = Velocidade dos carros inicial  
 	if (x == 0) // Não recebeu os argumentos, usar valores predefenidos
 		setDadosEstrutura(dados);
 	else if (x == 2) {
-		if (checkIfNumero(args[1], args[2]) == 0) {
+		if (checkIfNumero(args[1], args[2]) == 0 && checkIfValidNumber(args[1], args[2]) == 0) {
+			// verificar se são valores válidos (positivos, entre x e y)
 			if (criarRegKeys(_tstoi(args[1]), _tstoi(args[2]))) {
 				_tprintf_s(TEXT("Falha no accesso à informação relativamente às faixas de rodagem ou velocidade inicial dos carros"));
 				return -1;
@@ -38,6 +41,7 @@ void checkArgs(int x, char** args, FaixaVelocity* dados) {
 		setDadosEstrutura(dados); // para já, usa-se os valor default
 }
 
+// crias as HKeys
 int criarRegKeys(int arg1, int arg2) {
 	HKEY hKey;
 	DWORD disposition;
@@ -95,11 +99,10 @@ int criarRegKeys(int arg1, int arg2) {
 		return -1;
 	}
 	RegCloseKey(hKey);
-
 	return 0;
-
 }
 
+// verifica se os dados inseridos são números
 int checkIfNumero(char* arg1, char* arg2) {
 	for (int i = 0; arg1[i] != '\0'; i++)
 		if (!isdigit(arg1[i]))
@@ -110,6 +113,17 @@ int checkIfNumero(char* arg1, char* arg2) {
 
 	return 0;
 }
+
+// verifica se os números são válidos
+int checkIfValidNumber(char* arg1, char* arg2) {
+	// verifica se são positivos
+	if (_tstoi(arg1) <= 0 || _tstoi(arg2) <= 0)
+		return -1;
+	// falta verificar se estão entre x e y
+	return 0;
+}
+
+// coloca os dados recebidos numa HKey
 void setDadosEstrutura(FaixaVelocity* dados) {
 	DWORD size = sizeof(DWORD);
 	HKEY temp;

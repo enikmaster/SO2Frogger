@@ -22,13 +22,13 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 		*/
 		for (i = 0; i < COLUMNS - 1; i++) {
 			TCHAR a = pData->arrayGame[pData->nFaixaResp][i];
-			//if(_tcscmp(a, TEXT(" ")) != 0) {
-			pData->arrayGame[pData->nFaixaResp][i] = _T(' ');
-			if (i <= COLUMNS - 2)
-				pData->arrayGame[pData->nFaixaResp][i + 1] = pData->o.c;
-			else {
-				pData->arrayGame[pData->nFaixaResp][0] = pData->o.c;
-			}
+			//if(_tcscmp(a, TEXT(" ")) > 0) {
+				pData->arrayGame[pData->nFaixaResp][i] = _T(' ');
+				if (i <= COLUMNS - 2)
+					pData->arrayGame[pData->nFaixaResp][i + 1] = pData->o.c;
+				else {
+					pData->arrayGame[pData->nFaixaResp][0] = pData->o.c;
+				}
 			//}
 		}
 

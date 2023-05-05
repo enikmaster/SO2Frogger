@@ -30,11 +30,14 @@ int _tmain(int argc, TCHAR** argv) {
 	posI.Y = 0;
 	SetConsoleCursorPosition(hStdout, posI);
 	
+	// verifica se o mutex foi criado com sucesso
 	HANDLE hMutex = checkStart();
 	FaixaVelocity dados;
-	//
+
+	// verifica os dados recebidos
 	checkArgs(argc - 1, argv, &dados);
-	//
+
+	// lanca a thread
 	lancaThread(dados, posI, hStdout);
 
 	while (1) {

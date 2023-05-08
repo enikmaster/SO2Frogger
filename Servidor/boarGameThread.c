@@ -22,13 +22,15 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 		*/
 		for (i = 0; i < COLUMNS - 1; i++) {
 			TCHAR a = pData->arrayGame[pData->nFaixaResp][i];
-			if(a == TEXT(' ')) {
-				pData->arrayGame[pData->nFaixaResp][i] = _T(' ');
-				if (i <= COLUMNS - 2)
-					pData->arrayGame[pData->nFaixaResp][i + 1] = pData->o.c;
-				else {
-					pData->arrayGame[pData->nFaixaResp][0] = pData->o.c;
+			if (a == TEXT('C')) {
+				pData->arrayGame[pData->nFaixaResp][i] = TEXT(' ');
+				if (i < COLUMNS - 2) {
+					pData->arrayGame[pData->nFaixaResp][i + 1] = TEXT('C');
 				}
+				else {
+					pData->arrayGame[pData->nFaixaResp][0] = TEXT('C');
+				}
+				break;
 			}
 		}
 
@@ -38,8 +40,8 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 		SetConsoleCursorPosition(pData->hStdout, csbi.dwCursorPosition);
 		*/
 		ReleaseMutex(pData->hMutexArray);
-		Sleep(pData->veloc);
-		break;
+		Sleep(pData->veloc*500);
+		//break;
 	} while (pData->end);
 	WaitForSingleObject(pData->hMutexArray, INFINITE);
 	ExitThread(1);

@@ -1,4 +1,4 @@
-﻿#include "servidor.h"
+#include "servidor.h"
 
 DWORD WINAPI ThreadsFaixa(LPVOID param) {
 	Info* pData = (Info*)param;

@@ -6,42 +6,22 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
 
 	WaitForSingleObject(pData->hTimer, INFINITE);
-	int xtam[3];
-	TCHAR tam[20];
 	int i = 0, j = 0;
 	do {
-		if (pData->arrayGame == NULL) {
-			_tprintf_s(TEXT("e nulo"));
-		}
-
 		WaitForSingleObject(pData->hMutexArray, INFINITE);
-		/*
-		GetConsoleScreenBufferInfo(pData->hStdout, &csbi);
-		SetConsoleCursorPosition(pData->hStdout, pos);
-		//SetConsoleTextAttribute(pData->hStdout, FOREGROUND_BLUE << pData->id);
-		*/
-		for (i = 0; i < COLUMNS - 1; i++) {
-			TCHAR a = pData->arrayGame[pData->nFaixaResp][i];
-			if (a == TEXT('C')) {
+		for (i = 0; i < COLUMNS; i++) {
+			if(pData->arrayGame[pData->nFaixaResp][i] == pData->o.c) {
 				pData->arrayGame[pData->nFaixaResp][i] = TEXT(' ');
-				if (i < COLUMNS - 2) {
-					pData->arrayGame[pData->nFaixaResp][i + 1] = TEXT('C');
+				if (i == COLUMNS - 1) {
+					pData->arrayGame[pData->nFaixaResp][0] = pData->o.c;
 				}
-				else {
-					pData->arrayGame[pData->nFaixaResp][0] = TEXT('C');
-				}
+				else
+					pData->arrayGame[pData->nFaixaResp][i + 1] = pData->o.c;
 				break;
 			}
 		}
-
-		//pData->arrayGame[0][0] = TEXT(' ');
-		/*
-		SetConsoleTextAttribute(pData->hStdout, csbi.wAttributes);
-		SetConsoleCursorPosition(pData->hStdout, csbi.dwCursorPosition);
-		*/
 		ReleaseMutex(pData->hMutexArray);
-		Sleep(pData->veloc*500);
-		//break;
+		Sleep(pData->veloc*100);
 	} while (pData->end);
 	WaitForSingleObject(pData->hMutexArray, INFINITE);
 	ExitThread(1);
@@ -117,7 +97,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 		send[i].nFaixaResp = dados.faixa - i -1 ;
 		send[i].arrayGame = boardGameArray;
 		send[i].o = o;
-		send[i].veloc = dados.faixa;
+		send[i].veloc = dados.faixa + i * 10;
 		//send[i].nFaixaResp = 0;
 		send[i].hMutexArray = hMutexArray;
 		send[i].hTimer = hTimer;
@@ -148,6 +128,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 			_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    -  \n"));
 
 		}
+		SetConsoleCursorPosition(hStdout, csbi.dwCursorPosition);
 	} while (1);
 	
 	CloseHandle(hMutexArray);

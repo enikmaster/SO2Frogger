@@ -69,7 +69,7 @@ typedef struct _SharedMem {
 	unsigned int wP;
 	unsigned int rP;
 	BufferCell buffer[BUFFER_SIZE];
-	Info x;
+	TCHAR array[10][20];
 } SharedMem;
 
 typedef struct _ControlData {
@@ -106,17 +106,12 @@ int _tmain(int argc, TCHAR** argv) {
 
 
 
-
-
-
-	_tprintf_s(TEXT("-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
+	_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
 	for (int i = 0; i < 10; i++) {
-		if (dados.sharedMem->x.arrayGame == NULL)
+		if (dados.sharedMem->array == NULL)
 			_tprintf_s(TEXT(" NULO "));
-		else 
-			_tprintf_s(TEXT(" NOT NULO "));
 		for (int j = 0; j < 20; j++) {
-			_tprintf_s(TEXT(" %c "), dados.sharedMem->x.arrayGame[i][j]);
+			_tprintf_s(TEXT(" %c "), dados.sharedMem->array[i][j]);
 		}
 		_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    -  \n"));
 

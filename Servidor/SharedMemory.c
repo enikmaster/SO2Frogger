@@ -86,6 +86,8 @@ BOOL initMemAndSync(ControlData* cData, Info* dados,DWORD x) {
 	}
 	for (int i = 0; i < x; i++)
 		for (int j = 0; j < 20; j++)
-			cData->sharedMem->gameShared[i][j];
+			cData->sharedMem->gameShared[i][j] = dados->arrayGame[i][j];
+
+
 	return TRUE;
 }

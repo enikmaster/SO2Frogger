@@ -17,6 +17,7 @@
 #define COLUMNS 20
 #define JANELAX 60 
 #define JANELAY 40
+#define BUFFER_SIZE 10
 
 typedef struct faixaVelocity  {
 	DWORD faixa;
@@ -53,7 +54,34 @@ typedef struct Info {
 
 }Info;
 
-//
+
+/////////////
+typedef struct _BufferCell {
+	unsigned int id;
+	unsigned int val;
+} BufferCell;
+
+typedef struct _SharedMem {
+	unsigned int p;
+	unsigned int c;
+	unsigned int wP;
+	unsigned int rP;
+	BufferCell buffer[BUFFER_SIZE];
+	Info x;
+} SharedMem;
+
+typedef struct _ControlData {
+	unsigned int shutdown;
+	unsigned int id;
+	unsigned int count;
+	HANDLE hMapFile;
+	SharedMem* sharedMem;
+	HANDLE hMutex;
+	HANDLE hWriteSem;
+	HANDLE hReadSem;
+} ControlData;
+/////////////
+
 HANDLE checkStart(); //verificar se programa tem condições de ser executado
 void checkArgs(int x, TCHAR** args, FaixaVelocity* dados); //verificar argumentos
 int checkIfNumero(char* arg1, char* arg2); //verificar se args sao numeros
@@ -63,5 +91,8 @@ void setDadosEstrutura(FaixaVelocity* dados); // preenche a estrutura com os dad
 // threads
 void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout);
 
+//
+
+BOOL initMemAndSync(ControlData* cData, Info* dados);
 
 #endif

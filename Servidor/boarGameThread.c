@@ -79,6 +79,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 
 	}
 	
+	
 
 	SetConsoleCursorPosition(hStdout, csbi.dwCursorPosition);
 
@@ -109,6 +110,12 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 			_tprintf_s(TEXT("Não foi possível lançar as threads para o jogo iniciar.\n"));
 			ExitProcess(-1);
 		}
+	}
+	/////Começar aqui a memória partilhada
+	// verifica se o mutex foi criado com sucesso
+	ControlData a;
+	if (!initMemAndSync(&a, &dados)) {
+
 	}
 
 	LARGE_INTEGER liArranca;

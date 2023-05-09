@@ -31,6 +31,8 @@ int _tmain(int argc, TCHAR** argv) {
 	SetConsoleCursorPosition(hStdout, posI);
 	
 	// verifica se o mutex foi criado com sucesso
+	ControlData a;
+
 	HANDLE hMutex = checkStart();
 	FaixaVelocity dados;
 

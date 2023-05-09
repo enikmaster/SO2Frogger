@@ -5,12 +5,16 @@
 #define SEM_READ_NAME TEXT("SEM_READ")
 
 #define BUFFER_SIZE 10
-
+// coisas a partilhar:
+// tabuleiro
+// estrutura de Info (pontuação, nível e tempo)
+// buffer circular
 
 
 BOOL initMemAndSync(ControlData* cData, Info* dados) {
 	BOOL firstProcess = FALSE;
 
+	// cria fileMapping
 	cData->hMapFile = CreateFileMapping(
 		INVALID_HANDLE_VALUE,
 		NULL,
@@ -37,7 +41,7 @@ BOOL initMemAndSync(ControlData* cData, Info* dados) {
 		CloseHandle(cData->hMapFile);
 		return FALSE;
 	}
-
+	cData->sharedMem->x = *dados;
 	if (firstProcess) {
 		cData->sharedMem->p = 0;
 		cData->sharedMem->c = 0;
@@ -65,6 +69,19 @@ BOOL initMemAndSync(ControlData* cData, Info* dados) {
 		CloseHandle(cData->hMapFile);
 		CloseHandle(cData->hMutex);
 		CloseHandle(cData->hWriteSem);
+		return FALSE;
+	}
+	
+	cData->hReadSem = CreateSemaphore(NULL, 0, BUFFER_SIZE, SEM_READ_NAME);
+
+	if (cData->hReadSem == NULL)
+	{
+		_tprintf(TEXT("Error: CreateEvent (%d)\n"), GetLastError());
+		UnmapViewOfFile(cData->sharedMem);
+		CloseHandle(cData->hMapFile);
+		CloseHandle(cData->hMutex);
+		CloseHandle(cData->hWriteSem);
+		CloseHandle(cData->hReadSem);
 		return FALSE;
 	}
 

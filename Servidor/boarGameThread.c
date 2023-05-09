@@ -114,9 +114,12 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	/////Começar aqui a memória partilhada
 	// verifica se o mutex foi criado com sucesso
 	ControlData a;
-	if (!initMemAndSync(&a, &dados)) {
-
+	if (!initMemAndSync(&a, &send[0])) {
+		_tprintf_s(TEXT("Não foi possível criar memória partilhada.\n"));
+		ExitProcess(-1);
 	}
+	
+	CopyMemory(a.sharedMem, a.sharedMem->x.arrayGame, sizeof(a.sharedMem));
 
 	LARGE_INTEGER liArranca;
 	liArranca.QuadPart = -5 * 10000000;

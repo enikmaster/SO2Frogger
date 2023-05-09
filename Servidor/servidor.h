@@ -51,14 +51,16 @@ typedef struct Info {
 	DWORD end;
 	HANDLE hMutexArray, hTimer, hStdout;
 	objs o; //objetos
-
+	// TODO:
+	// adicionar pontuação
+	// tempo
 }Info;
 
 
 /////////////
 typedef struct _BufferCell {
 	unsigned int id;
-	unsigned int val;
+	TCHAR val[100];
 } BufferCell;
 
 typedef struct _SharedMem {
@@ -71,14 +73,13 @@ typedef struct _SharedMem {
 } SharedMem;
 
 typedef struct _ControlData {
-	unsigned int shutdown;
+	// unsigned int shutdown;
 	unsigned int id;
-	unsigned int count;
 	HANDLE hMapFile;
 	SharedMem* sharedMem;
 	HANDLE hMutex;
-	HANDLE hWriteSem;
-	HANDLE hReadSem;
+	HANDLE hWriteSem; // n
+	HANDLE hReadSem;  // 1
 } ControlData;
 /////////////
 
@@ -92,7 +93,6 @@ void setDadosEstrutura(FaixaVelocity* dados); // preenche a estrutura com os dad
 void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout);
 
 //
-
 BOOL initMemAndSync(ControlData* cData, Info* dados);
 
 #endif

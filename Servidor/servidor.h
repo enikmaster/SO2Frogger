@@ -69,7 +69,7 @@ typedef struct _SharedMem {
 	unsigned int wP;
 	unsigned int rP;
 	BufferCell buffer[BUFFER_SIZE];
-	Info x;
+	TCHAR gameShared[10][20];
 } SharedMem;
 
 typedef struct _ControlData {
@@ -93,6 +93,6 @@ void setDadosEstrutura(FaixaVelocity* dados); // preenche a estrutura com os dad
 void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout);
 
 //
-BOOL initMemAndSync(ControlData* cData, Info* dados);
+BOOL initMemAndSync(ControlData* cData, Info* dados, DWORD x);
 
 #endif

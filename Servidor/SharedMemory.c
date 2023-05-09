@@ -11,7 +11,7 @@
 // buffer circular
 
 
-BOOL initMemAndSync(ControlData* cData, Info* dados) {
+BOOL initMemAndSync(ControlData* cData, Info* dados,DWORD x) {
 	BOOL firstProcess = FALSE;
 
 	// cria fileMapping
@@ -41,7 +41,7 @@ BOOL initMemAndSync(ControlData* cData, Info* dados) {
 		CloseHandle(cData->hMapFile);
 		return FALSE;
 	}
-	cData->sharedMem->x = *dados;
+
 	if (firstProcess) {
 		cData->sharedMem->p = 0;
 		cData->sharedMem->c = 0;
@@ -84,6 +84,8 @@ BOOL initMemAndSync(ControlData* cData, Info* dados) {
 		CloseHandle(cData->hReadSem);
 		return FALSE;
 	}
-
+	for (int i = 0; i < x; i++)
+		for (int j = 0; j < 20; j++)
+			cData->sharedMem->gameShared[i][j];
 	return TRUE;
 }

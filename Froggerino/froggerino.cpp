@@ -7,6 +7,10 @@
 // Variáveis internas da DLL caso haja alguma
 
 // Definição de funções
-int primeiraFunction() {
-	return 0;
-};
+//// funções para ler das estruturas (getters)
+//// Info
+ 
+
+//// funções para escrever nas estruturas (setters)
+
+//// outras funções

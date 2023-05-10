@@ -1,4 +1,5 @@
 #include "servidor.h"
+#include "..\Froggerino\froggerino.h" // funções da DLL
 
 //vamos ter uma função para fechar tudo
 
@@ -12,6 +13,7 @@ int _tmain(int argc, TCHAR** argv) {
 	if (x1 == -1 || x2 == -1 || x3 == -1)
 		ExitProcess(-1);
 #endif
+
 	srand(time(NULL));
 	
 	COORD posI = { 0,0 };

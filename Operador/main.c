@@ -104,24 +104,34 @@ int _tmain(int argc, TCHAR** argv) {
 		_tprintf(TEXT("Error: Alocação de memória deu erro\n"));
 	}
 
+	COORD posI = { 0,0 };
+	DWORD res;
+	HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_SCREEN_BUFFER_INFO csbi;
+	posI.X = 0;
+	posI.Y = 0;
+	BOOL succeed = FillConsoleOutputCharacter(hStdout, _T(' '), 50 * 50, posI, &res);
+	posI.X = 0;
+	posI.Y = 0;
+	SetConsoleCursorPosition(hStdout, posI);
+	while (1) {
+		posI.X = 0;
+		posI.Y = 7;
+		CONSOLE_SCREEN_BUFFER_INFO csbi;
+		GetConsoleScreenBufferInfo(hStdout, &csbi);
+		SetConsoleCursorPosition(hStdout, posI);
+		_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
+		for (int i = 0; i < 10; i++) {
+			if (dados.sharedMem->array == NULL)
+				_tprintf_s(TEXT(" NULO "));
+			for (int j = 0; j < 20; j++) {
+				_tprintf_s(TEXT(" %c "), dados.sharedMem->array[i][j]);
+			}
+			_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    -  \n"));
 
-
-	_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
-	for (int i = 0; i < 10; i++) {
-		if (dados.sharedMem->array == NULL)
-			_tprintf_s(TEXT(" NULO "));
-		for (int j = 0; j < 20; j++) {
-			_tprintf_s(TEXT(" %c "), dados.sharedMem->array[i][j]);
 		}
-		_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    -  \n"));
-
+		SetConsoleCursorPosition(hStdout, csbi.dwCursorPosition);
 	}
-
-
-
-
-
-
 	CloseHandle(hMapFile);
 	return 0;
 }

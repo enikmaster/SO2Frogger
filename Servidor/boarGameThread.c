@@ -119,8 +119,6 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 		ExitProcess(-1);
 	}
 
-	//CopyMemory(a.sharedMem, a.sharedMem->x.arrayGame, sizeof(a.sharedMem));
-
 	LARGE_INTEGER liArranca;
 	liArranca.QuadPart = -5 * 10000000;
 	SetWaitableTimer(hTimer, (LARGE_INTEGER*)&liArranca, 0, NULL, NULL, FALSE);
@@ -134,6 +132,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 		for (int i = 0; i < dados.faixa; i++) {
 			for (int j = 0; j < 20; j++) {
 				_tprintf_s(TEXT(" %c "), boardGameArray[i][j]);
+				a.sharedMem->gameShared[i][j] = boardGameArray[i][j];
 			}
 			_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    -  \n"));
 

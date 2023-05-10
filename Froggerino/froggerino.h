@@ -13,7 +13,7 @@ typedef struct Info { // Informação completa sobre o jogo
 	DWORD veloc; //velocidade 
 	DWORD nFaixaResp; //faixa de atuacao
 	DWORD id; //id
-	DWORD end;
+	DWORD end; // end
 	HANDLE hMutexArray;
 	HANDLE hTimer;
 	HANDLE hStdout;

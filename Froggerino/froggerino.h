@@ -9,7 +9,7 @@
 
 // estruturas a usar entre os vários programas
 typedef struct Info { // Informação completa sobre o jogo
-	TCHAR** arrayGame;
+	TCHAR** arrayGame; //aqui feito
 	DWORD veloc; //velocidade 
 	DWORD nFaixaResp; //faixa de atuacao
 	DWORD id; //id

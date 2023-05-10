@@ -1,7 +1,6 @@
 #ifndef SERVIDOR_H
 #define SERVIDOR_H
 
-//Includes
 #include <windows.h>
 #include <tchar.h>
 #include <math.h>
@@ -18,8 +17,12 @@
 #define JANELAX 60 
 #define JANELAY 40
 #define BUFFER_SIZE 10
+#define SHM_NAME TEXT("SHM_PC")
+#define MUTEX_NAME TEXT("MUTEXP")
+#define SEM_WRITE_NAME TEXT("SEM_WRITE")
+#define SEM_READ_NAME TEXT("SEM_READ")
 
-typedef struct faixaVelocity  {
+typedef struct faixaVelocity {
 	DWORD faixa;
 	DWORD velocity;
 } FaixaVelocity;
@@ -34,7 +37,6 @@ typedef struct BoardGame {
 	pos d;
 	HANDLE hMutexArray, hTimerBoard;
 }BoardGame;
-
 
 typedef struct objectos {
 	TCHAR s; // sapo 
@@ -70,7 +72,7 @@ typedef struct _SharedMem {
 	unsigned int wP;
 	unsigned int rP;
 	BufferCell buffer[BUFFER_SIZE];
-	TCHAR gameShared[10][20];
+	TCHAR array[10][20];
 } SharedMem;
 
 typedef struct _ControlData {
@@ -82,19 +84,5 @@ typedef struct _ControlData {
 	HANDLE hWriteSem; // n
 	HANDLE hReadSem;  // 1
 } ControlData;
-
-/////////////
-
-HANDLE checkStart(); //verificar se programa tem condições de ser executado
-void checkArgs(int x, TCHAR** args, FaixaVelocity* dados); //verificar argumentos
-int checkIfNumero(char* arg1, char* arg2); //verificar se args sao numeros
-int criarRegKeys(int arg1, int arg2); //criar RegKeys
-void setDadosEstrutura(FaixaVelocity* dados); // preenche a estrutura com os dados para Faixa e Velocity
-
-// threads
-void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout);
-
-//
-BOOL initMemAndSync(ControlData* cData, Info* dados, DWORD x);
 
 #endif

@@ -70,17 +70,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
 	GetConsoleScreenBufferInfo(hStdout, &csbi);
 	SetConsoleCursorPosition(hStdout, posI);
-	_tprintf_s(TEXT("-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
-	for (int i = 0; i < dados.faixa; i++) {
-		for (int j = 0; j < 20; j++) {
-			_tprintf_s(TEXT(" %c "), boardGameArray[i][j]);
-		}
-		_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    -  \n"));
-
-	}
-
-
-
+	
 	SetConsoleCursorPosition(hStdout, csbi.dwCursorPosition);
 
 	Info* send = (Info*)malloc(dados.faixa * sizeof(Info));
@@ -123,21 +113,27 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	liArranca.QuadPart = -5 * 10000000;
 	SetWaitableTimer(hTimer, (LARGE_INTEGER*)&liArranca, 0, NULL, NULL, FALSE);
 	do {
-		posI.X = 0;
-		posI.Y = 7;
-		CONSOLE_SCREEN_BUFFER_INFO csbi;
-		GetConsoleScreenBufferInfo(hStdout, &csbi);
-		SetConsoleCursorPosition(hStdout, posI);
-		_tprintf_s(TEXT("-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
+		
+		//posI.X = 0;
+		//posI.Y = 7;
+		//CONSOLE_SCREEN_BUFFER_INFO csbi;
+		//GetConsoleScreenBufferInfo(hStdout, &csbi);
+		//SetConsoleCursorPosition(hStdout, posI);
+		//_tprintf_s(TEXT("-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
+		WaitForSingleObject(hMutexArray, INFINITE);
 		for (int i = 0; i < dados.faixa; i++) {
 			for (int j = 0; j < 20; j++) {
-				_tprintf_s(TEXT(" %c "), boardGameArray[i][j]);
+				//_tprintf_s(TEXT(" %c "), boardGameArray[i][j]);
 				a.sharedMem->gameShared[i][j] = boardGameArray[i][j];
 			}
-			_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    -  \n"));
+			//_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    -  \n"));
 
 		}
-		SetConsoleCursorPosition(hStdout, csbi.dwCursorPosition);
+		ReleaseMutex(hMutexArray, INFINITE);
+		//Sinalizar Evento de Operadores que podem copiar tabuleiro
+		//SetConsoleCursorPosition(hStdout, csbi.dwCursorPosition);
+		//_getchar();
+		//break;
 	} while (1);
 
 	CloseHandle(hMutexArray);

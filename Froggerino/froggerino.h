@@ -7,7 +7,15 @@
 #define FROGGERINO_API __declspec(dllimport)
 #endif
 
+#define BUFFER_SIZE 10
+
 // estruturas a usar entre os vários programas
+typedef struct objectos { // objetos do tabuleiro
+	TCHAR s; // sapo 
+	TCHAR c; // carro
+	TCHAR o; // objeto
+} objs;
+
 typedef struct Info { // Informação completa sobre o jogo
 	TCHAR** arrayGame; //aqui feito
 	DWORD veloc; //velocidade 

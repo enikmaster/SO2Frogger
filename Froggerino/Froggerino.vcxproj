@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{b70b4a44-ea54-4a6b-9b9a-3601e196aca8}</ProjectGuid>
+    <ProjectGuid>{929B2433-6EC2-44BE-869F-1F036F0DE1B2}</ProjectGuid>
     <RootNamespace>Froggerino</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>

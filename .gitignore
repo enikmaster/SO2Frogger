@@ -261,3 +261,4 @@ paket-files/
 __pycache__/
 *.pyc
 /src/toolkit/Community.VisualStudio.Toolkit.Shared/.vshistory/Services.cs
+/Froggerino/Froggerino.vcxproj.filters

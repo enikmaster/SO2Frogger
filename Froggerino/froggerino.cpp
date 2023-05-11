@@ -1,8 +1,8 @@
 // froggerino.cpp - definição das funções exportadas para o DLL
 #include "pch.h" // obrigatório
 // outros includes necessários
-
 #include "froggerino.h" // obrigatório
+#include <tchar.h>
 
 // Variáveis internas da DLL caso haja alguma
 
@@ -14,3 +14,14 @@
 //// funções para escrever nas estruturas (setters)
 
 //// outras funções
+/*extern "C" void showBG(TCHAR localBG[10][20]) {
+	for (int i = 0; i < 10; ++i) {
+		if (i == 0)
+			_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
+		if (localBG == NULL)
+			_tprintf_s(TEXT(" NULO "));
+		for (int j = 0; j < 20; ++j)
+			_tprintf_s(TEXT(" %c "), localBG[i][j]);
+		_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
+	}
+}*/

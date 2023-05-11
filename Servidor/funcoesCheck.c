@@ -1,4 +1,5 @@
 #include "servidor.h"
+#include "..\Froggerino\froggerino.h"
 
 // verifica se mutex foi criado com sucesso
 HANDLE checkStart() {

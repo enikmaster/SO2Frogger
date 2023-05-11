@@ -1,4 +1,5 @@
 #include "servidor.h"
+#include "..\Froggerino\froggerino.h"
 
 DWORD WINAPI ThreadsFaixa(LPVOID param) {
 	Info* pData = (Info*)param;
@@ -107,8 +108,8 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 		_tprintf_s(TEXT("Não foi possível criar memória partilhada.\n"));
 		ExitProcess(-1);
 	}
-	a.Event = CreateEvent(NULL, TRUE, FALSE, EVENTSHAREDMEM);
-	if (a.Event == NULL) {
+	a.hEvent = CreateEvent(NULL, TRUE, FALSE, EVENTSHAREDMEM);
+	if (a.hEvent == NULL) {
 		_tprintf_s(TEXT("Erro"));
 		ExitProcess(1);
 	}
@@ -126,7 +127,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 
 		}
 		ReleaseMutex(hMutexArray, INFINITE);
-		SetEvent(a.Event);
+		SetEvent(a.hEvent);
 		//Sinalizar Evento de Operadores que podem copiar tabuleiro
 	} while (1);
 

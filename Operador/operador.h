@@ -21,6 +21,9 @@
 #define MUTEX_NAME TEXT("MUTEXP")
 #define SEM_WRITE_NAME TEXT("SEM_WRITE")
 #define SEM_READ_NAME TEXT("SEM_READ")
+#define EVENTSHAREDMEM TEXT("EVENTOREAD")
+#define MUTEXSHAREDMEM TEXT("HMUTEX")
+
 
 typedef struct faixaVelocity {
 	DWORD faixa;
@@ -81,6 +84,7 @@ typedef struct _ControlData {
 	HANDLE hMapFile;
 	SharedMem* sharedMem;
 	HANDLE hMutex;
+	HANDLE Event;
 	HANDLE hWriteSem; // n
 	HANDLE hReadSem;  // 1
 } ControlData;

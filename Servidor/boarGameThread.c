@@ -54,7 +54,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 		ExitProcess(-1);
 	}
 
-	HANDLE hMutexArray = CreateMutex(NULL, FALSE, NULL);
+	HANDLE hMutexArray = CreateMutex(NULL, FALSE, MUTEXSHAREDMEM);
 	HANDLE hTimer = CreateWaitableTimer(NULL, TRUE, NULL);
 
 	HANDLE* hThreads = (HANDLE*)malloc(dados.faixa * sizeof(HANDLE));
@@ -82,7 +82,6 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 
 	//Preencher array randomly 
 
-	//
 	for (int i = 0; i < dados.faixa; i++) {
 		send[i].id = i;
 		send[i].nFaixaResp = dados.faixa - i - 1;
@@ -108,32 +107,27 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 		_tprintf_s(TEXT("Não foi possível criar memória partilhada.\n"));
 		ExitProcess(-1);
 	}
+	a.Event = CreateEvent(NULL, TRUE, FALSE, EVENTSHAREDMEM);
+	if (a.Event == NULL) {
+		_tprintf_s(TEXT("Erro"));
+		ExitProcess(1);
+	}
 
 	LARGE_INTEGER liArranca;
 	liArranca.QuadPart = -5 * 10000000;
 	SetWaitableTimer(hTimer, (LARGE_INTEGER*)&liArranca, 0, NULL, NULL, FALSE);
 	do {
-		
-		//posI.X = 0;
-		//posI.Y = 7;
-		//CONSOLE_SCREEN_BUFFER_INFO csbi;
-		//GetConsoleScreenBufferInfo(hStdout, &csbi);
-		//SetConsoleCursorPosition(hStdout, posI);
-		//_tprintf_s(TEXT("-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
 		WaitForSingleObject(hMutexArray, INFINITE);
 		for (int i = 0; i < dados.faixa; i++) {
 			for (int j = 0; j < 20; j++) {
 				//_tprintf_s(TEXT(" %c "), boardGameArray[i][j]);
 				a.sharedMem->gameShared[i][j] = boardGameArray[i][j];
 			}
-			//_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    -  \n"));
 
 		}
 		ReleaseMutex(hMutexArray, INFINITE);
+		SetEvent(a.Event);
 		//Sinalizar Evento de Operadores que podem copiar tabuleiro
-		//SetConsoleCursorPosition(hStdout, csbi.dwCursorPosition);
-		//_getchar();
-		//break;
 	} while (1);
 
 	CloseHandle(hMutexArray);

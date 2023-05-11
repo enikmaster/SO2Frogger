@@ -18,7 +18,8 @@
 #define JANELAX 60 
 #define JANELAY 40
 #define BUFFER_SIZE 10
-
+#define EVENTSHAREDMEM TEXT("EVENTOREAD")
+#define MUTEXSHAREDMEM TEXT("HMUTEX")
 typedef struct faixaVelocity  {
 	DWORD faixa;
 	DWORD velocity;
@@ -79,6 +80,7 @@ typedef struct _ControlData {
 	HANDLE hMapFile;
 	SharedMem* sharedMem;
 	HANDLE hMutex;
+	HANDLE Event;
 	HANDLE hWriteSem; // n
 	HANDLE hReadSem;  // 1
 } ControlData;

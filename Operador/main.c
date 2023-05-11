@@ -1,11 +1,11 @@
 ﻿#include "operador.h"
+#include "..\Froggerino\froggerino.h"
 
-
-typedef struct InfoToThread {
+typedef struct INFO_TO_THREAD {
 	COORD x;
 	HANDLE hStdout;
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
-}InfoToThread;
+} InfoToThread;
 
 DWORD WINAPI GetInput(LPVOID param) {
 	InfoToThread* pdata = (InfoToThread*)param;
@@ -21,7 +21,17 @@ DWORD WINAPI GetInput(LPVOID param) {
 	SetConsoleCursorPosition(pdata->hStdout, csbi.dwCursorPosition);
 	ExitThread(1);
 }
-
+void showBG(TCHAR localBG[10][20]) {
+	for (int i = 0; i < 10; ++i) {
+		if (i == 0)
+			_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
+		if (localBG == NULL)
+			_tprintf_s(TEXT(" NULO "));
+		for (int j = 0; j < 20; ++j)
+			_tprintf_s(TEXT(" %c "), localBG[i][j]);
+		_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
+	}
+}
 
 int _tmain(int argc, TCHAR** argv) {
 #ifdef UNICODE
@@ -61,7 +71,7 @@ int _tmain(int argc, TCHAR** argv) {
 
 	HANDLE hMutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, MUTEXSHAREDMEM);
 	
-	TCHAR array[10][20];
+	TCHAR localBG[10][20];
 	
 	InfoToThread a;
 	a.hStdout = hStdout;
@@ -73,7 +83,7 @@ int _tmain(int argc, TCHAR** argv) {
 		WaitForSingleObject(hEvent, INFINITE);
 		WaitForSingleObject(hMutex, INFINITE);
 
-		CopyMemory(&array, dados.sharedMem->array, sizeof(dados.sharedMem->array));
+		CopyMemory(&localBG, dados.sharedMem->gameShared, sizeof(dados.sharedMem->gameShared));
 
 		ReleaseMutex(hMutex);
 		ResetEvent(hEvent);
@@ -98,17 +108,20 @@ int _tmain(int argc, TCHAR** argv) {
 			_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    -  \n"));
 		}
 		*/ 
-		_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
-		for (int i = 0; i < 10; i++) {
-
-			if (dados.sharedMem->array == NULL)
+		/*int numLinhas = sizeof(localBG) / sizeof(localBG[0]);
+		int numColunas = sizeof(localBG[0]) / sizeof(TCHAR);
+		for (int i = 0; i < numLinhas; i++) {
+			if(i == 0)
+				_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
+			if (localBG == NULL)
 				_tprintf_s(TEXT(" NULO "));
-			for (int j = 0; j < 20; j++) {
-				_tprintf_s(TEXT(" %c "), array[i][j]); //copyMemory(estrutura
+			for (int j = 0; j < numColunas; j++) {
+				_tprintf_s(TEXT(" %c "), localBG[i][j]); //copyMemory(estrutura
 			}
 			_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    -  \n"));
 
-		}
+		}*/
+		showBG(localBG);
 		SetConsoleCursorInfo(hStdout, &cursorInfo);
 		SetConsoleCursorPosition(hStdout, csbi.dwCursorPosition);
 	}

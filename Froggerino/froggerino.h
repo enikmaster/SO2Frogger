@@ -10,13 +10,30 @@
 #define BUFFER_SIZE 10
 
 // estruturas a usar entre os vários programas
-typedef struct objectos { // objetos do tabuleiro
+FROGGERINO_API typedef struct FAIXAVELOCITY { // informação sobre a faixa
+	DWORD faixa;
+	DWORD velocity;
+} FaixaVelocity;
+
+FROGGERINO_API typedef struct POS { //posição para array, cada thread trada de escrever uma faixa
+	DWORD X;
+	DWORD Y;
+} pos;
+
+FROGGERINO_API typedef struct BOARDGAME { // tabuleiro de jogo
+	TCHAR** gameBoardArray;
+	pos d;
+	HANDLE hMutexArray;
+	HANDLE hTimerBoard;
+} BoardGame;
+
+FROGGERINO_API typedef struct OBJECTO { // objetos do tabuleiro
 	TCHAR s; // sapo 
 	TCHAR c; // carro
 	TCHAR o; // objeto
 } objs;
 
-typedef struct Info { // Informação completa sobre o jogo
+FROGGERINO_API typedef struct INFO { // Informação completa sobre o jogo
 	TCHAR** arrayGame; //aqui feito
 	DWORD veloc; //velocidade 
 	DWORD nFaixaResp; //faixa de atuacao
@@ -31,12 +48,12 @@ typedef struct Info { // Informação completa sobre o jogo
 	unsigned int time;  // tempo
 } Info;
 
-typedef struct _BufferCell { // ainda não percebi o que é isto...
+FROGGERINO_API typedef struct _BUFFERCELL { // informação para ser lida pelo servidor
 	unsigned int id;
 	TCHAR val[100];
 } BufferCell;
 
-typedef struct _SharedMem { // memória partilhada
+FROGGERINO_API typedef struct _SHAREDMEM { // memória partilhada
 	unsigned int p;
 	unsigned int c;
 	unsigned int wP;
@@ -45,11 +62,12 @@ typedef struct _SharedMem { // memória partilhada
 	TCHAR gameShared[10][20];
 } SharedMem;
 
-typedef struct _ControlData { // informação para controlo de fluxo de dados
+FROGGERINO_API typedef struct _CONTROLDATA { // informação para controlo de fluxo de dados
 	unsigned int id;
 	HANDLE hMapFile;
 	SharedMem* sharedMem;
 	HANDLE hMutex;
+	HANDLE hEvent;
 	HANDLE hWriteSem; // n
 	HANDLE hReadSem;  // 1
 } ControlData;
@@ -63,3 +81,12 @@ FROGGERINO_API int x;
 //// funções para escrever nas estruturas (setters)
 
 //// outras funções
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+	//FROGGERINO_API void showBG(TCHAR);
+
+#ifdef __cplusplus
+}
+#endif

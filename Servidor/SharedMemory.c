@@ -1,10 +1,11 @@
 #include "servidor.h"
+#include "..\Froggerino\froggerino.h"
+
 #define SHM_NAME TEXT("SHM_PC")
 #define MUTEX_NAME TEXT("MUTEXP")
 #define SEM_WRITE_NAME TEXT("SEM_WRITE")
 #define SEM_READ_NAME TEXT("SEM_READ")
 
-#define BUFFER_SIZE 10
 // coisas a partilhar:
 // tabuleiro
 // estrutura de Info (pontuação, nível e tempo)

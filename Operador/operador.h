@@ -33,4 +33,9 @@ typedef struct _BUFFERCELL BufferCell;
 typedef struct _SHAREDMEM SharedMem;
 typedef struct _CONTROLDATA ControlData;
 
+typedef struct infoextra {
+	HANDLE hStdout;
+	HANDLE hMutex;
+}infoextra;
+
 #endif

@@ -10,7 +10,6 @@ typedef struct INFO_TO_THREAD {
 void showBG(TCHAR localBG[10][20]) {
 	for (int i = 0; i < 10; i++) {
 		TCHAR lvl0[100] = TEXT("");  
-
 		for (int j = 0; j < 20; j++) {
 			TCHAR temp[4];  
 			temp[0] = TEXT(' ');
@@ -18,9 +17,9 @@ void showBG(TCHAR localBG[10][20]) {
 			temp[2] = TEXT(' '); 
 			temp[3] = TEXT('\0');  
 
-			wcscat_s(lvl0, 100, temp);  // Concatenate the temporary string to lvl0
+			wcscat_s(lvl0, 100, temp);  
 		}
-		_tprintf_s(TEXT("%s\n"), lvl0);  // Print the row
+		_tprintf_s(TEXT("%s\n"), lvl0); 
 		_tprintf_s(TEXT("-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
 	} 
 	/*
@@ -126,11 +125,29 @@ int _tmain(int argc, TCHAR** argv) {
 		pos.X = 18;
 		pos.Y = 1;
 		SetConsoleCursorPosition(hStdout, pos);
-		_fgetts(name, sizeof(name) / sizeof(TCHAR), stdin);
+		TCHAR name[100];
+		int i = 0;
+		TCHAR ch;
+		do {
+			ch = _gettchar();
+			if (ch != '\n') {
+				name[i] = ch;
+				i++;
+
+				WaitForSingleObject(extra.hMutex, INFINITE);
+				pos.Y = 4;
+				pos.X = i;  
+				SetConsoleCursorPosition(hStdout, pos);
+				ReleaseMutex(extra.hMutex);
+
+				_tprintf_s(TEXT("%c"), ch);  
+			}
+		} while (ch != '\n');
+		name[i] = '\0';
 		WaitForSingleObject(extra.hMutex, INFINITE);
 		if (count > 0) {
 			pos.X = 0;
-			pos.Y = 2;
+			pos.Y = 3;
 			SetConsoleCursorPosition(hStdout, pos);
 			FillConsoleOutputCharacter(hStdout, ' ', 50, pos, &written);
 		}

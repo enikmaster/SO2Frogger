@@ -9,6 +9,7 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 	WaitForSingleObject(pData->hTimer, INFINITE);
 	int i = 0, j = 0;
 	do {
+		//validacoes
 		WaitForSingleObject(pData->hMutexArray, INFINITE);
 		for (i = 0; i < COLUMNS; i++) {
 			if (pData->arrayGame[pData->nFaixaResp][i] == pData->o.c) {
@@ -114,6 +115,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 		send[i].hMutexArray = hMutexArray;
 		send[i].hTimer = hTimer;
 		send[i].hStdout = hStdout;
+		send[i].direction = 1 -> direita //send[i].direction = 0;
 		send[i].end = 1;
 		hThreads[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ThreadsFaixa, (LPVOID)&send[i], 0, &send[i].id);
 		if (hThreads[i] == NULL)

@@ -28,8 +28,16 @@ typedef struct OBJECTO objs;
 typedef struct INFO Info;
 typedef struct _BUFFERCELL BufferCell;
 typedef struct _SHAREDMEM SharedMem;
-typedef struct _CONTROLDATA ControlData;
-
+//typedef struct _CONTROLDATA ControlData;
+typedef struct _CONTROLDATA { // informação para controlo de fluxo de dados
+	unsigned int id;
+	HANDLE hMapFile;
+	SharedMem* sharedMem;
+	HANDLE hMutex;
+	HANDLE hEvent;
+	HANDLE hWriteSem; // n
+	HANDLE hReadSem;  // 1
+} ControlData;
 HANDLE checkStart(); //verificar se programa tem condições de ser executado
 void checkArgs(int x, TCHAR** args, FaixaVelocity* dados); //verificar argumentos
 int checkIfNumero(char* arg1, char* arg2); //verificar se args sao numeros
@@ -39,7 +47,10 @@ void setDadosEstrutura(FaixaVelocity* dados); // preenche a estrutura com os dad
 // threads
 void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout);
 
+
 // shared memory
 BOOL initMemAndSync(ControlData* cData, Info* dados, DWORD x);
+
+
 
 #endif

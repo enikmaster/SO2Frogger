@@ -40,7 +40,6 @@ int _tmain(int argc, TCHAR** argv) {
 
 	// verifica os dados recebidos
 	checkArgs(argc - 1, argv, &dados);
-
 	// lanca a thread
 	lancaThread(dados, posI, hStdout);
 

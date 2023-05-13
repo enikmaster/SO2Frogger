@@ -22,11 +22,32 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 			}
 		}
 		ReleaseMutex(pData->hMutexArray);
+		//SetEvent para sinalizar main de que tem algo para atualizar
 		Sleep(pData->veloc * 100);
 	} while (pData->end);
 	WaitForSingleObject(pData->hMutexArray, INFINITE);
 	ExitThread(1);
 }
+
+DWORD WINAPI LeComandosOperadoresThread(LPVOID param) {
+	ControlData* pdata = (LPVOID*)param;
+	TCHAR leitura[256];
+	while (1) {
+		WaitForSingleObject(pdata->hReadSem, INFINITE);
+		_tprintf_s(TEXT("Desbloqueou o hread\n"));
+		WaitForSingleObject(pdata->hMutex, INFINITE);
+		_tprintf_s(TEXT("Mutex desbloqueado\n"));
+		//Sera que preciso Mutex de protecao do buffer?
+		CopyMemory(&leitura, &pdata->sharedMem->buffer[pdata->sharedMem->rP++], sizeof(pdata->sharedMem->buffer));
+		if (pdata->sharedMem->rP == BUFFER_SIZE)
+			pdata->sharedMem->rP = 0;
+		ReleaseMutex(pdata->hMutex);
+		ReleaseSemaphore(pdata->hWriteSem, 1, NULL);
+		_tprintf(TEXT("\n Leu isto: %s"), leitura);
+	}
+	return 0;
+}
+
 void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	objs o;
 	o.c = TEXT('C');
@@ -104,6 +125,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	/////Começar aqui a memória partilhada
 	// verifica se o mutex foi criado com sucesso
 	ControlData a;
+
 	if (!initMemAndSync(&a, &send[0], dados.faixa)) {
 		_tprintf_s(TEXT("Não foi possível criar memória partilhada.\n"));
 		ExitProcess(-1);
@@ -116,7 +138,9 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 
 	LARGE_INTEGER liArranca;
 	liArranca.QuadPart = -5 * 10000000;
+	HANDLE hLeitura = CreateThread(NULL, 0, LeComandosOperadoresThread, (LPVOID)&a, 0, NULL); //proteger
 	SetWaitableTimer(hTimer, (LARGE_INTEGER*)&liArranca, 0, NULL, NULL, FALSE);
+	//Ativar threads do jogo quando entrar um jogador ou dois
 	do {
 		WaitForSingleObject(hMutexArray, INFINITE);
 		for (int i = 0; i < dados.faixa; i++) {

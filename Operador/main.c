@@ -20,16 +20,16 @@ void showBG(TCHAR localBG[10][20]) {
 
 DWORD WINAPI GetInput(LPVOID param) {
 	infoextra* pdata = (infoextra*)param;
-	ControlData dados;
+	
 	HANDLE hMapFile = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, SHM_NAME);
 	if (hMapFile == NULL)
 	{
 		_tprintf(TEXT("Error: CreateFileMapping (%d)\n"), GetLastError());
 		return FALSE;
 	}
-	dados.hMapFile = hMapFile;
-	dados.sharedMem = (SharedMem*)MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, 0);
-	if (dados.sharedMem == NULL) {
+	pdata->controlingData.hMapFile = hMapFile;
+	pdata->controlingData.sharedMem = (SharedMem*)MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+	if (pdata->controlingData.sharedMem == NULL) {
 		_tprintf(TEXT("Error: Alocação de memória deu erro\n"));
 	}
 	HANDLE hEvent = OpenEvent(EVENT_ALL_ACCESS, FALSE, EVENTSHAREDMEM);
@@ -38,17 +38,20 @@ DWORD WINAPI GetInput(LPVOID param) {
 	}
 
 	HANDLE hMutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, MUTEXSHAREDMEM);
-	dados.hEvent = hEvent;
-	dados.hMutex = hMutex;
+	pdata->controlingData.hEvent = hEvent;
+	pdata->controlingData.hMutex = hMutex;
 	TCHAR localBG[10][20];
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
 	COORD pos;
 	pos.X = 0;
-	pos.Y = 5;	do {
-		WaitForSingleObject(dados.hMutex, INFINITE);
-		CopyMemory(&localBG, dados.sharedMem->gameShared, sizeof(dados.sharedMem->gameShared));
-		ReleaseMutex(dados.hMutex);
-		ResetEvent(dados.hEvent);
+	pos.Y = 5;	
+
+	do {
+		WaitForSingleObject(pdata->controlingData.hEvent, INFINITE);
+		WaitForSingleObject(pdata->controlingData.hMutex, INFINITE);
+		CopyMemory(&localBG, pdata->controlingData.sharedMem->gameShared, sizeof(pdata->controlingData.sharedMem->gameShared));
+		ReleaseMutex(pdata->controlingData.hMutex);
+		ResetEvent(pdata->controlingData.hEvent);
 		WaitForSingleObject(pdata->hMutex, INFINITE);
 		GetConsoleScreenBufferInfo(pdata->hStdout, &csbi);
 		SetConsoleCursorPosition(pdata->hStdout, pos);
@@ -59,7 +62,7 @@ DWORD WINAPI GetInput(LPVOID param) {
 		Sleep(500);
 	} while (1);
 	
-	CloseHandle(dados.hMapFile);
+	CloseHandle(pdata->controlingData.hMapFile);
 	ExitThread(1);
 }
 
@@ -90,10 +93,12 @@ int _tmain(int argc, TCHAR** argv) {
 
 	
 	infoextra extra;
+
 	extra.hMutex = MutexShared;
 	extra.hStdout = hStdout;
-	
 	HANDLE hThread = CreateThread(NULL, 0, GetInput, &extra, 0, NULL);
+	extra.controlingData.hReadSem = OpenSemaphore(SEMAPHORE_ALL_ACCESS, FALSE, SEM_READ_NAME);
+	extra.controlingData.hWriteSem = OpenSemaphore(SEMAPHORE_ALL_ACCESS, FALSE, SEM_WRITE_NAME);
 	int count = 0;
 	TCHAR msg[256];
 	while (1) {
@@ -118,6 +123,13 @@ int _tmain(int argc, TCHAR** argv) {
 			FillConsoleOutputCharacter(hStdout, ' ', 50, pos, &written);
 		}
 		_tprintf_s(TEXT("Você enviou: %s"), msg);
+		WaitForSingleObject(extra.controlingData.hWriteSem, INFINITE);
+		WaitForSingleObject(extra.controlingData.hMutex, INFINITE);
+		CopyMemory(&extra.controlingData.sharedMem->buffer[extra.controlingData.sharedMem->wP++], &msg, sizeof(extra.controlingData.sharedMem->buffer));
+		if (extra.controlingData.sharedMem->wP == BUFFER_SIZE)
+			extra.controlingData.sharedMem->wP = 0;
+		ReleaseMutex(extra.controlingData.hMutex);
+		ReleaseSemaphore(extra.controlingData.hReadSem,1,NULL);
 		//enviar isto para bufferCircular msg
 		count++;
 		pos.Y = 1;

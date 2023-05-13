@@ -56,21 +56,21 @@ FROGGERINO_API typedef struct _BUFFERCELL { // informação para ser lida pelo ser
 FROGGERINO_API typedef struct _SHAREDMEM { // memória partilhada
 	unsigned int p;
 	unsigned int c;
-	unsigned int wP;
-	unsigned int rP;
+	unsigned int wP; //posição escrita
+	unsigned int rP; //posição read
 	BufferCell buffer[BUFFER_SIZE];
 	TCHAR gameShared[10][20];
 } SharedMem;
 
-FROGGERINO_API typedef struct _CONTROLDATA { // informação para controlo de fluxo de dados
-	unsigned int id;
-	HANDLE hMapFile;
-	SharedMem* sharedMem;
-	HANDLE hMutex;
-	HANDLE hEvent;
-	HANDLE hWriteSem; // n
-	HANDLE hReadSem;  // 1
-} ControlData;
+//FROGGERINO_API typedef struct _CONTROLDATA { // informação para controlo de fluxo de dados
+//	unsigned int id;
+//	HANDLE hMapFile;
+//	SharedMem* sharedMem;
+//	HANDLE hMutex;
+//	HANDLE hEvent;
+//	HANDLE hWriteSem; // n
+//	HANDLE hReadSem;  // 1
+//} ControlData;
 
 // variáveis
 FROGGERINO_API int x;

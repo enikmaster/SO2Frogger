@@ -31,7 +31,17 @@ typedef struct OBJECTO objs;
 typedef struct INFO Info;
 typedef struct _BUFFERCELL BufferCell;
 typedef struct _SHAREDMEM SharedMem;
-typedef struct _CONTROLDATA ControlData;
+//typedef struct _CONTROLDATA ControlData;
+
+typedef struct _CONTROLDATA { // informação para controlo de fluxo de dados
+	unsigned int id;
+	HANDLE hMapFile;
+	SharedMem* sharedMem;
+	HANDLE hMutex;
+	HANDLE hEvent;
+	HANDLE hWriteSem; // n
+	HANDLE hReadSem;  // 1
+} ControlData;
 
 typedef struct infoextra {
 	HANDLE hStdout;

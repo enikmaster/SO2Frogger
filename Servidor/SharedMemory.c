@@ -13,7 +13,7 @@
 
 
 BOOL initMemAndSync(ControlData* cData, Info* dados,DWORD x) {
-	BOOL firstProcess = FALSE;
+	//BOOL firstProcess = TRUE;
 
 	// cria fileMapping
 	cData->hMapFile = CreateFileMapping(
@@ -43,12 +43,12 @@ BOOL initMemAndSync(ControlData* cData, Info* dados,DWORD x) {
 		return FALSE;
 	}
 
-	if (firstProcess) {
+	
 		cData->sharedMem->p = 0;
 		cData->sharedMem->c = 0;
 		cData->sharedMem->wP = 0;
 		cData->sharedMem->rP = 0;
-	}
+	
 
 	cData->hMutex = CreateMutex(NULL, FALSE, MUTEX_NAME);
 
@@ -88,6 +88,6 @@ BOOL initMemAndSync(ControlData* cData, Info* dados,DWORD x) {
 	for (int i = 0; i < x; i++)
 		for (int j = 0; j < 20; j++)
 			cData->sharedMem->gameShared[i][j] = dados->arrayGame[i][j];
-
+	//_tprintf_s(TEXT("Entrou"));
 	return TRUE;
 }

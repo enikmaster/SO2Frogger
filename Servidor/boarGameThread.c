@@ -115,7 +115,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 		send[i].hMutexArray = hMutexArray;
 		send[i].hTimer = hTimer;
 		send[i].hStdout = hStdout;
-		send[i].direction = 1 -> direita //send[i].direction = 0;
+		//send[i].direction = 1 -> direita //send[i].direction = 0;
 		send[i].end = 1;
 		hThreads[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ThreadsFaixa, (LPVOID)&send[i], 0, &send[i].id);
 		if (hThreads[i] == NULL)

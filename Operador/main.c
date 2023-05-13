@@ -1,12 +1,6 @@
 ﻿#include "operador.h"
 #include "..\Froggerino\froggerino.h"
 
-typedef struct INFO_TO_THREAD {
-	COORD x;
-	HANDLE hStdout;
-	CONSOLE_SCREEN_BUFFER_INFO csbi;
-} InfoToThread;
-
 void showBG(TCHAR localBG[10][20]) {
 	for (int i = 0; i < 10; i++) {
 		TCHAR lvl0[100] = TEXT("");  
@@ -50,8 +44,7 @@ DWORD WINAPI GetInput(LPVOID param) {
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
 	COORD pos;
 	pos.X = 0;
-	pos.Y = 5;
-	do {
+	pos.Y = 5;	do {
 		WaitForSingleObject(dados.hMutex, INFINITE);
 		CopyMemory(&localBG, dados.sharedMem->gameShared, sizeof(dados.sharedMem->gameShared));
 		ReleaseMutex(dados.hMutex);

@@ -36,6 +36,7 @@ typedef struct _CONTROLDATA ControlData;
 typedef struct infoextra {
 	HANDLE hStdout;
 	HANDLE hMutex;
+	ControlData controlingData;
 }infoextra;
 
 #endif

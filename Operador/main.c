@@ -22,15 +22,6 @@ void showBG(TCHAR localBG[10][20]) {
 		_tprintf_s(TEXT("%s\n"), lvl0); 
 		_tprintf_s(TEXT("-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
 	} 
-	/*
-	for (int i = 0; i < 10; ++i) {
-		if (localBG == NULL)
-			_tprintf_s(TEXT(" NULO "));
-		for (int j = 0; j < 20; ++j)
-			_tprintf_s(TEXT(" %c "), localBG[i][j]);
-		_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
-	}
-	*/
 }
 
 DWORD WINAPI GetInput(LPVOID param) {
@@ -111,7 +102,7 @@ int _tmain(int argc, TCHAR** argv) {
 	
 	HANDLE hThread = CreateThread(NULL, 0, GetInput, &extra, 0, NULL);
 	int count = 0;
-	TCHAR name[256];
+	TCHAR msg[256];
 	while (1) {
 		DWORD written;
 		CONSOLE_SCREEN_BUFFER_INFO info;
@@ -125,33 +116,16 @@ int _tmain(int argc, TCHAR** argv) {
 		pos.X = 18;
 		pos.Y = 1;
 		SetConsoleCursorPosition(hStdout, pos);
-		TCHAR name[100];
-		int i = 0;
-		TCHAR ch;
-		do {
-			ch = _gettchar();
-			if (ch != '\n') {
-				name[i] = ch;
-				i++;
-
-				WaitForSingleObject(extra.hMutex, INFINITE);
-				pos.Y = 4;
-				pos.X = i;  
-				SetConsoleCursorPosition(hStdout, pos);
-				ReleaseMutex(extra.hMutex);
-
-				_tprintf_s(TEXT("%c"), ch);  
-			}
-		} while (ch != '\n');
-		name[i] = '\0';
+		_fgetts(msg, sizeof(msg) / sizeof(TCHAR), stdin);
 		WaitForSingleObject(extra.hMutex, INFINITE);
 		if (count > 0) {
 			pos.X = 0;
-			pos.Y = 3;
+			pos.Y = 2;
 			SetConsoleCursorPosition(hStdout, pos);
 			FillConsoleOutputCharacter(hStdout, ' ', 50, pos, &written);
 		}
-		_tprintf_s(TEXT("Você enviou: %s"), name);
+		_tprintf_s(TEXT("Você enviou: %s"), msg);
+		//enviar isto para bufferCircular msg
 		count++;
 		pos.Y = 1;
 		COORD start = { pos.X, pos.Y };

@@ -5,14 +5,15 @@
 HANDLE checkStart() {
 	HANDLE hMutex = CreateMutex(NULL, FALSE, TEXT(programa));
 	if (hMutex == NULL) {
-		_tprintf_s(TEXT("Erro no handle"));
-		ExitProcess(0);
-	}
-	if (GetLastError() == ERROR_ALREADY_EXISTS) {
-		_tprintf_s(TEXT("Já existe um servidor a ser executado."));
+		_tprintf_s(TEXT("[ERRO] Já existe um servidor a ser executado.\n"));
 		CloseHandle(hMutex);
 		ExitProcess(0);
 	}
+	/*if (GetLastError() == ERROR_ALREADY_EXISTS) {
+		_tprintf_s(TEXT("Já existe um servidor a ser executado."));
+		CloseHandle(hMutex);
+		ExitProcess(0);
+	}*/
 	return hMutex;
 }
 
@@ -26,7 +27,7 @@ void checkArgs(int x, char** args, FaixaVelocity* dados) {
 		if (checkIfNumero(args[1], args[2]) == 0 && checkIfValidNumber(args[1], args[2]) == 0) {
 			// verificar se são valores válidos (positivos, entre x e y)
 			if (criarRegKeys(_tstoi(args[1]), _tstoi(args[2]))) {
-				_tprintf_s(TEXT("Falha no accesso à informação relativamente às faixas de rodagem ou velocidade inicial dos carros"));
+				_tprintf_s(TEXT("[ERRO] Falha no accesso à informação relativamente às faixas de rodagem ou velocidade inicial dos carros"));
 				return -1;
 			}
 			dados->faixa = _tstoi(args[1]);
@@ -34,7 +35,7 @@ void checkArgs(int x, char** args, FaixaVelocity* dados) {
 			//_tprintf_s(TEXT("%d %d"), dados->faixa, dados->velocity);
 		}
 		else {
-			_tprintf_s(TEXT("Os argumentos que passou não são válidos, vamos usar uns predefinidos!\n"));
+			_tprintf_s(TEXT("[WARNING] Os argumentos que passou não são válidos, vamos usar uns predefinidos!\n"));
 			setDadosEstrutura(dados);
 		}
 	}
@@ -59,7 +60,7 @@ int criarRegKeys(int arg1, int arg2) {
 		&disposition);
 
 	if (ResultKey != ERROR_SUCCESS) {
-		_tprintf_s(TEXT("Erro ao criar/abrir a RegKey\n"));
+		_tprintf_s(TEXT("[ERRO] Erro ao criar/abrir a RegKey\n"));
 		RegCloseKey(hKey);
 		return -1;
 	}
@@ -81,7 +82,7 @@ int criarRegKeys(int arg1, int arg2) {
 		sizeof(arg1));
 
 	if (ResultKey != ERROR_SUCCESS) {
-		_tprintf_s(TEXT("Erro ao escrever o valor de nFaixas na RegKey\n"));
+		_tprintf_s(TEXT("[ERRO] Erro ao escrever o valor de nFaixas na RegKey\n"));
 		RegCloseKey(hKey);
 		return -1;
 	}
@@ -95,7 +96,7 @@ int criarRegKeys(int arg1, int arg2) {
 		sizeof(arg2));
 
 	if (ResultKey != ERROR_SUCCESS) {
-		_tprintf_s(TEXT("Erro ao escrever o valor Velocity na RegKey\n"));
+		_tprintf_s(TEXT("[ERRO] Erro ao escrever o valor Velocity na RegKey\n"));
 		RegCloseKey(hKey);
 		return -1;
 	}
@@ -149,12 +150,12 @@ void setDadosEstrutura(FaixaVelocity* dados) {
 		if (RegQueryValueExA(temp, keyValueNameF, NULL, NULL, (LPBYTE)&dados->faixa, &size) == ERROR_SUCCESS)
 			_tprintf_s(TEXT("Faixas: %d\n"), dados->faixa);
 		else
-			_tprintf_s(TEXT("Erro a criar/abrir key (%d)\n"), GetLastError());
+			_tprintf_s(TEXT("[ERRO] Erro a criar/abrir key.\n"));
 
 		if (RegQueryValueExA(temp, keyValueNameV, NULL, NULL, (LPBYTE)&dados->velocity, &size) == ERROR_SUCCESS)
 			_tprintf_s(TEXT("Velocity: %d\n"), dados->velocity);
 		else
-			_tprintf_s(TEXT("Erro a criar/abrir key (%d)\n"), GetLastError());
+			_tprintf_s(TEXT("[ERRO] Erro a criar/abrir key.\n"));
 	}
 	else { //Não existe regkey ainda
 		dados->faixa = 10;

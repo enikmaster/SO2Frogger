@@ -19,13 +19,16 @@ int _tmain(int argc, TCHAR** argv) {
 	COORD posI = { 0,0 };
 	DWORD res;
 	HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+	if (hStdout == NULL) {
+		_tprintf_s(TEXT("[ERRO] Erro"));
+		ExitProcess(-1);
+	}
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
 	posI.X = 0;
 	posI.Y = 0;
 	BOOL succeed = FillConsoleOutputCharacter(hStdout, _T(' '), 50 * 50, posI, &res);
-
 	if (!succeed) {
-		_tprintf_s(TEXT("Não reune condições de continuar!\n"));
+		_tprintf_s(TEXT("[ERRO] Error"));
 		ExitProcess(-1);
 	}
 	posI.X = 0;
@@ -36,6 +39,11 @@ int _tmain(int argc, TCHAR** argv) {
 	ControlData a;
 
 	HANDLE hMutex = checkStart();
+	if (hMutex == NULL) {
+		//_tprintf_s(TEXT("[ERRO] Já existe um servidor a ser executado.\n"));
+		CloseHandle(hMutex);
+		ExitProcess(0);
+	}
 	FaixaVelocity dados;
 
 	// verifica os dados recebidos

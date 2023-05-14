@@ -24,9 +24,9 @@ BOOL initMemAndSync(ControlData* cData, Info* dados,DWORD x) {
 		sizeof(SharedMem),
 		SHM_NAME);
 
-	if (cData->hMapFile == NULL)
-	{
-		_tprintf(TEXT("Error: CreateFileMapping (%d)\n"), GetLastError());
+	if (cData->hMapFile == NULL) {
+		_tprintf(TEXT("[ERRO] Erro a crair o FileMapping.\n"));
+		CloseHandle(cData->hMapFile);
 		return FALSE;
 	}
 
@@ -38,23 +38,20 @@ BOOL initMemAndSync(ControlData* cData, Info* dados,DWORD x) {
 
 	if (cData->sharedMem == NULL)
 	{
-		_tprintf(TEXT("Error: MapViewOfFile (%d)\n"), GetLastError());
+		_tprintf(TEXT("[ERRO] Erro a criar o MapViewOfFile.\n"));
 		CloseHandle(cData->hMapFile);
 		return FALSE;
 	}
-
 	
-		cData->sharedMem->p = 0;
-		cData->sharedMem->c = 0;
-		cData->sharedMem->wP = 0;
-		cData->sharedMem->rP = 0;
+	cData->sharedMem->p = 0;
+	cData->sharedMem->c = 0;
+	cData->sharedMem->wP = 0;
+	cData->sharedMem->rP = 0;
 	
 
 	cData->hMutex = CreateMutex(NULL, FALSE, MUTEX_NAME);
-
-	if (cData->hMutex == NULL)
-	{
-		_tprintf(TEXT("Error: CreateMutex (%d)\n"), GetLastError());
+	if (cData->hMutex == NULL) {
+		_tprintf(TEXT("[ERRO] Erro a criar o Mutex.\n"));
 		UnmapViewOfFile(cData->sharedMem);
 		CloseHandle(cData->hMapFile);
 		CloseHandle(cData->hMutex);

@@ -1,7 +1,6 @@
 ﻿#include "operador.h"
 //#include "..\Froggerino\froggerino.h"
 
-
 int _tmain(int argc, TCHAR** argv) {
 #ifdef UNICODE
 	DWORD x1, x2, x3;

@@ -9,11 +9,13 @@
 
 #define BUFFER_SIZE 10
 
+
 FROGGERINO_API typedef enum {
 	CMD_PARAR,    // uma palavra + um inteiro > 0 && < total de faixas
 	CMD_INVERTER, // uma palavra + um inteiro > 0 && < total de faixas
 	CMD_ADICIONAR, // uma palavra + um inteiro > 0 && < total de faixas
 	CMD_RETOMAR,
+	CMD_SAIR,
 	CMD_ERRO // comando inválido
 } Comando;
 

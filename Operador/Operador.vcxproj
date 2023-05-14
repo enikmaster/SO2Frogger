@@ -128,6 +128,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.c" />
+    <ClCompile Include="consola.c" />
+    <ClCompile Include="Threads.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="operador.h" />

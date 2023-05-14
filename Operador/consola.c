@@ -62,6 +62,8 @@ Comando checkInput(TCHAR* msg, infoextra* info, DWORD* AltFaixa, DWORD maxFaixas
 		return CMD_PARAR;
 	}
 	else if (wcscmp(firstarg, TEXT("ADICIONAR")) == 0) {
+		if (secondArg < 2 || secondArg > maxFaixas - 1)
+			return CMD_ERRO;
 		return CMD_ADICIONAR;
 	}
 	else if (wcscmp(firstarg, TEXT("INVERTER")) == 0) {
@@ -72,6 +74,9 @@ Comando checkInput(TCHAR* msg, infoextra* info, DWORD* AltFaixa, DWORD maxFaixas
 	}
 	else if (wcscmp(firstarg, TEXT("SAIR")) == 0) {
 		return CMD_SAIR;
+	}
+	else if (wcscmp(firstarg, TEXT("PAUSAR")) == 0) {
+		return CMD_PAUSEALL;
 	}
 	return CMD_ERRO;
 }

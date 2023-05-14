@@ -50,13 +50,8 @@ int _tmain(int argc, TCHAR** argv) {
 	checkArgs(argc - 1, argv, &dados);
 	// lanca a thread
 	lancaThread(dados, posI, hStdout);
-
-	while (1) {
-		TCHAR hi[20];
-		_fgetts(hi, 20, stdin);
-		CloseHandle(hMutex);
-		return 0;
-	}
+	CloseHandle(hMutex);
+	CloseHandle(hStdout);
 
 	return 0;
 }

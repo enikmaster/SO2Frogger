@@ -36,6 +36,7 @@
 	CMD_ADICIONAR, // uma palavra + um inteiro > 0 && < total de faixas
 	CMD_RETOMAR,
 	CMD_SAIR,
+	CMD_PAUSEALL,
 	CMD_ERRO // comando inválido
 } Comando;
 

@@ -16,6 +16,7 @@ FROGGERINO_API typedef enum {
 	CMD_ADICIONAR, // uma palavra + um inteiro > 0 && < total de faixas
 	CMD_RETOMAR,
 	CMD_SAIR,
+	CMD_PAUSEALL,
 	CMD_ERRO // comando inválido
 } Comando;
 
@@ -48,13 +49,18 @@ FROGGERINO_API typedef struct INFO { // Informação completa sobre o jogo
 	DWORD veloc; //velocidade 
 	DWORD nFaixaResp; //faixa de atuacao
 	DWORD id; //id
+	DWORD num;
 	DWORD end; // end
 	DWORD sentido; //if 1 direita if 0 esquerda
 	BOOL moving; //if true andar if false parar
+	BOOL allMoving;
+	BOOL colocaObjeto;
 	HANDLE hMutexArray;
 	HANDLE hEventStart;
 	HANDLE hEventPause;
+	HANDLE hEventRemovePause;
 	HANDLE hStdout;
+
 	objs o; //objetos
 	// TODO:
 	unsigned int score; // pontuação

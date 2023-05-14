@@ -114,7 +114,11 @@ int _tmain(int argc, TCHAR** argv) {
 				_tprintf_s(TEXT("Vai encerrar!"));
 				extra.controlingData.fechar = TRUE;
 				break;
-
+			case CMD_PAUSEALL:
+				_tprintf_s(TEXT("Você pediu para pause movimento de todas as faixas com sucesso!"));
+				infoToServer.f1 = 5;
+				valid = 1;
+				break;
 			default:
 				_tprintf_s(TEXT("[ERRO] Comando invalido!"));
 				valid = 0;

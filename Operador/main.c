@@ -61,6 +61,8 @@ DWORD WINAPI GetInput(LPVOID param) {
 		WaitForSingleObject(pdata->controlingData.hMutex, INFINITE);
 		CopyMemory(&localBG, pdata->controlingData.sharedMem->gameShared, sizeof(pdata->controlingData.sharedMem->gameShared));
 		if (!ReleaseMutex(pdata->controlingData.hMutex)) {
+			_tprintf(TEXT("[ERRO] Mutex já não existe.\n"));
+			ExitProcess(1);
 			break;
 		}
 		ResetEvent(pdata->controlingData.hEvent);
@@ -71,6 +73,8 @@ DWORD WINAPI GetInput(LPVOID param) {
 		showBG(localBG, pdata->controlingData.sharedMem->faixaMax);
 		SetConsoleCursorPosition(pdata->hStdout, csbi.dwCursorPosition);
 		if (!ReleaseMutex(pdata->hMutex)) {
+			_tprintf(TEXT("[ERRO] Mutex já não existe.\n"));
+			ExitProcess(1);
 			break;
 		}
 		Sleep(500);

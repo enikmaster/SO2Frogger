@@ -38,6 +38,7 @@ DWORD WINAPI GetInput(LPVOID param) {
 	pos.X = 0;
 	pos.Y = 5;
 
+
 	do {
 		WaitForSingleObject(pdata->controlingData.hEvent, INFINITE);
 		WaitForSingleObject(pdata->controlingData.hMutex, INFINITE);

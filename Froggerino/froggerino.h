@@ -9,6 +9,13 @@
 
 #define BUFFER_SIZE 10
 
+FROGGERINO_API typedef enum {
+	CMD_PARAR,    // uma palavra + um inteiro > 0 && < total de faixas
+	CMD_INVERTER, // uma palavra + um inteiro > 0 && < total de faixas
+	CMD_ADICIONAR, // uma palavra + um inteiro > 0 && < total de faixas
+	CMD_ERRO // comando inválido
+} Comando;
+
 // estruturas a usar entre os vários programas
 FROGGERINO_API typedef struct FAIXAVELOCITY { // informação sobre a faixa
 	DWORD faixa;

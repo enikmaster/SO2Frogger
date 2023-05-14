@@ -13,6 +13,7 @@ FROGGERINO_API typedef enum {
 	CMD_PARAR,    // uma palavra + um inteiro > 0 && < total de faixas
 	CMD_INVERTER, // uma palavra + um inteiro > 0 && < total de faixas
 	CMD_ADICIONAR, // uma palavra + um inteiro > 0 && < total de faixas
+	CMD_RETOMAR,
 	CMD_ERRO // comando inválido
 } Comando;
 
@@ -46,8 +47,11 @@ FROGGERINO_API typedef struct INFO { // Informação completa sobre o jogo
 	DWORD nFaixaResp; //faixa de atuacao
 	DWORD id; //id
 	DWORD end; // end
+	DWORD sentido; //if 1 direita if 0 esquerda
+	BOOL moving; //if true andar if false parar
 	HANDLE hMutexArray;
-	HANDLE hTimer;
+	HANDLE hEventStart;
+	HANDLE hEventPause;
 	HANDLE hStdout;
 	objs o; //objetos
 	// TODO:
@@ -57,10 +61,12 @@ FROGGERINO_API typedef struct INFO { // Informação completa sobre o jogo
 
 FROGGERINO_API typedef struct _BUFFERCELL { // informação para ser lida pelo servidor
 	unsigned int id;
-	TCHAR val[100];
+	DWORD f1;
+	DWORD f2;
 } BufferCell;
 
 FROGGERINO_API typedef struct _SHAREDMEM { // memória partilhada
+	unsigned int faixaMax;
 	unsigned int p;
 	unsigned int c;
 	unsigned int wP; //posição escrita

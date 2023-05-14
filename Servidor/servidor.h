@@ -37,6 +37,7 @@ typedef struct _CONTROLDATA { // informação para controlo de fluxo de dados
 	HANDLE hEvent;
 	HANDLE hWriteSem; // n
 	HANDLE hReadSem;  // 1
+	Info* infoControl;
 } ControlData;
 HANDLE checkStart(); //verificar se programa tem condições de ser executado
 void checkArgs(int x, TCHAR** args, FaixaVelocity* dados); //verificar argumentos

@@ -24,20 +24,30 @@ DWORD WINAPI GetInput(LPVOID param) {
 	HANDLE hMapFile = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, SHM_NAME);
 	if (hMapFile == NULL)
 	{
-		_tprintf(TEXT("Error: CreateFileMapping (%d)\n"), GetLastError());
-		return FALSE;
+		_tprintf(TEXT("[ERRO] Erro a abrir o FileMapping.\n"));
+		CloseHandle(hMapFile);
+		ExitProcess(-1);
 	}
 	pdata->controlingData.hMapFile = hMapFile;
 	pdata->controlingData.sharedMem = (SharedMem*)MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 	if (pdata->controlingData.sharedMem == NULL) {
-		_tprintf(TEXT("Error: Alocação de memória deu erro\n"));
+		_tprintf(TEXT("[ERRO] Alocação de memória deu erro\n"));
+		CloseHandle(hMapFile);
+		ExitProcess(-1);
 	}
 	HANDLE hEvent = OpenEvent(EVENT_ALL_ACCESS, FALSE, EVENTSHAREDMEM);
 	if (hEvent == NULL) {
+		_tprintf(TEXT("[ERRO] Não foi possível aceder ao evento desejado.\n"));
+		CloseHandle(hEvent);
 		ExitProcess(1);
 	}
 
 	HANDLE hMutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, MUTEXSHAREDMEM);
+	if (hMutex == NULL) {
+		_tprintf(TEXT("[ERRO] Não foi possível abrir o Mutex.\n"));
+		CloseHandle(hMutex);
+		ExitProcess(1);
+	}
 	pdata->controlingData.hEvent = hEvent;
 	pdata->controlingData.hMutex = hMutex;
 	TCHAR localBG[10][20];
@@ -50,7 +60,9 @@ DWORD WINAPI GetInput(LPVOID param) {
 		WaitForSingleObject(pdata->controlingData.hEvent, INFINITE);
 		WaitForSingleObject(pdata->controlingData.hMutex, INFINITE);
 		CopyMemory(&localBG, pdata->controlingData.sharedMem->gameShared, sizeof(pdata->controlingData.sharedMem->gameShared));
-		ReleaseMutex(pdata->controlingData.hMutex);
+		if (!ReleaseMutex(pdata->controlingData.hMutex)) {
+			break;
+		}
 		ResetEvent(pdata->controlingData.hEvent);
 		WaitForSingleObject(pdata->hMutex, INFINITE);
 		GetConsoleScreenBufferInfo(pdata->hStdout, &csbi);
@@ -58,7 +70,9 @@ DWORD WINAPI GetInput(LPVOID param) {
 		_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
 		showBG(localBG, pdata->controlingData.sharedMem->faixaMax);
 		SetConsoleCursorPosition(pdata->hStdout, csbi.dwCursorPosition);
-		ReleaseMutex(pdata->hMutex);
+		if (!ReleaseMutex(pdata->hMutex)) {
+			break;
+		}
 		Sleep(500);
 	} while (1);
 	
@@ -135,26 +149,48 @@ int _tmain(int argc, TCHAR** argv) {
 	COORD pos;
 	DWORD res;
 	HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+	if(hStdout == NULL) {
+		_tprintf_s(TEXT("Error"));
+		ExitProcess(-1);
+	}
 	pos.X = 0;
 	pos.Y = 0;
 	BOOL succeed = FillConsoleOutputCharacter(hStdout, _T(' '), 80 * 26, pos, &res);
 	if (!succeed) {
-		_tprintf_s(TEXT("Error"));
+		_tprintf_s(TEXT("[ERRO] Error"));
 		ExitProcess(-1);
 	}
 	_tprintf_s(TEXT("Operador"));
 
-	
 	HANDLE MutexShared = CreateMutex(NULL, FALSE, TEXT("MUTEXLOCAL"));
+	if (MutexShared == NULL) {
+		_tprintf_s(TEXT("[ERRO] Erro a "));
 
+		ExitProcess(-1);
+	}
 	
 	infoextra extra;
 
 	extra.hMutex = MutexShared;
 	extra.hStdout = hStdout;
 	HANDLE hThread = CreateThread(NULL, 0, GetInput, &extra, 0, NULL);
+	if (hThread == NULL) {
+		_tprintf_s(TEXT("[ERRO] Erro a criar a thread.\n"));
+		CloseHandle(hThread);
+		ExitProcess(-1);
+	}
 	extra.controlingData.hReadSem = OpenSemaphore(SEMAPHORE_ALL_ACCESS, FALSE, SEM_READ_NAME);
+	if(extra.controlingData.hReadSem == NULL) {
+		_tprintf_s(TEXT("[ERRO] Erro a abrir o Semaphore de leitura.\n"));
+		CloseHandle(extra.controlingData.hReadSem);
+		ExitProcess(-1);
+	}
 	extra.controlingData.hWriteSem = OpenSemaphore(SEMAPHORE_ALL_ACCESS, FALSE, SEM_WRITE_NAME);
+	if (extra.controlingData.hWriteSem == NULL) {
+		_tprintf_s(TEXT("[ERRO] Erro a abrir o Semaphore de escrita.\n"));
+		CloseHandle(extra.controlingData.hWriteSem);
+		ExitProcess(-1);
+	}
 	int count = 0;
 	TCHAR msg[256];
 
@@ -170,7 +206,11 @@ int _tmain(int argc, TCHAR** argv) {
 		SetConsoleCursorPosition(hStdout, pos);
 		WaitForSingleObject(extra.hMutex, INFINITE);
 		_tprintf_s(TEXT("Comando a enviar: "));
-		ReleaseMutex(extra.hMutex);
+		if (!ReleaseMutex(extra.hMutex)) {
+			_tprintf_s(TEXT("[ERRO] Mutex local encerrado.\n"));
+			ExitProcess(-1);
+		}
+		
 		pos.X = 18;
 		pos.Y = 1;
 		SetConsoleCursorPosition(hStdout, pos);
@@ -205,7 +245,7 @@ int _tmain(int argc, TCHAR** argv) {
 				valid = 1;
 				break;
 			default:
-				_tprintf_s(TEXT("Comando invalido!"));
+				_tprintf_s(TEXT("[ERRO] Comando invalido!"));
 				valid = 0;
 				break;
 		}
@@ -215,8 +255,14 @@ int _tmain(int argc, TCHAR** argv) {
 			CopyMemory(&extra.controlingData.sharedMem->buffer[extra.controlingData.sharedMem->wP++], &infoToServer, sizeof(extra.controlingData.sharedMem->buffer));
 			if (extra.controlingData.sharedMem->wP == BUFFER_SIZE)
 				extra.controlingData.sharedMem->wP = 0;
-			ReleaseMutex(extra.controlingData.hMutex);
-			ReleaseSemaphore(extra.controlingData.hReadSem,1,NULL);
+			if(!ReleaseMutex(extra.controlingData.hMutex)) {
+				_tprintf_s(TEXT("[ERRO] Mutex foi encerrado no servidor, a encerrar.\n"));
+				ExitProcess(-1);
+			};
+			if (!ReleaseSemaphore(extra.controlingData.hReadSem, 1, NULL)) {
+				_tprintf_s(TEXT("[ERRO] Semaphore foi encerrado no servidor, a encerrar.\n"));
+				ExitProcess(-1);
+			};
 		}
 		
 		count++;
@@ -225,8 +271,14 @@ int _tmain(int argc, TCHAR** argv) {
 		GetConsoleScreenBufferInfo(hStdout, &info);
 		DWORD numChars = info.dwSize.X - pos.X;
 		FillConsoleOutputCharacter(hStdout, TEXT(' '), numChars, start, &written);
-		ReleaseMutex(extra.hMutex);
+		if (!ReleaseMutex(extra.hMutex)) {
+			_tprintf_s(TEXT("[ERRO] Mutex local encerrado.\n"));
+			ExitProcess(-1);
+		};
 	}
-	CloseHandle(extra.hMutex);
+	if(!CloseHandle(extra.hMutex)) {
+		_tprintf_s(TEXT("[ERRO] Mutex local encerrado.\n"));
+		ExitProcess(-1);
+	}
 	return 0;
 }

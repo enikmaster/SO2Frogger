@@ -73,7 +73,7 @@ BOOL initMemAndSync(ControlData* cData, Info* dados,DWORD x) {
 		return FALSE;
 	}
 	
-	cData->hReadSem = CreateSemaphore(NULL, 0, 1, SEM_READ_NAME);
+	cData->hReadSem = CreateSemaphore(NULL, 0, 10, SEM_READ_NAME);
 
 	if (cData->hReadSem == NULL)
 	{

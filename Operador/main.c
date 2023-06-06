@@ -72,23 +72,22 @@ int _tmain(int argc, TCHAR** argv) {
 		WaitForSingleObject(extra.hMutex, INFINITE);
 		_tprintf_s(TEXT("Comando a enviar: "));
 		if (!ReleaseMutex(extra.hMutex)) {
-			_tprintf_s(TEXT("[ERRO] Mutex local encerrado.\n"));
 			flagt = -1;
-			ExitProcess(-1);
+			break;
 		}
-
 		pos.X = YBOARD;
 		pos.Y = YINPUTS;
 		SetConsoleCursorPosition(hStdout, pos);
 		_fgetts(msg, sizeof(msg) / sizeof(TCHAR), stdin);
-
-		// Alterou-se esta parte
 		DWORD temp = WaitForSingleObject(extra.hMutex, 5000);
 		if (temp == WAIT_TIMEOUT) {
 			flagt = -1;
 			break;
 		}
-
+		if (!ReleaseMutex(extra.hMutex)) {
+			flagt = -1;
+			break;
+		}
 		if (count > 0) {
 			pos.X = 0;
 			pos.Y = YINPUTS +1 ;
@@ -162,29 +161,14 @@ int _tmain(int argc, TCHAR** argv) {
 			ExitProcess(-1);
 		};
 	}
-	_tprintf_s(TEXT("Cenas\n"));
-	if(flagt != -1) WaitForSingleObject(hThread, INFINITE);
-
-	if(!CloseHandle(extra.hMutex)) {
-		_tprintf_s(TEXT("[ERRO] Mutex local encerrado.\n"));
-		ExitProcess(-1);
+	if (flagt != -1) {
+		WaitForSingleObject(hThread, INFINITE);
+		CloseHandle(extra.hMutex);
 	}
-	if (!CloseHandle(hThread)){
-		_tprintf_s(TEXT("[ERRO] Ao fechar Handle hThread\n"));
-		ExitProcess(-1);
-	}
-	if (!CloseHandle(hStdout)) {
-		_tprintf_s(TEXT("[ERRO] Ao fechar Handle hStdout\n"));
-		ExitProcess(-1);
-	}
-	if (!CloseHandle(extra.controlingData.hReadSem)) {
-		_tprintf_s(TEXT("[ERRO] Ao fechar Handle Mutex hReadSem\n"));
-		ExitProcess(-1);
-	}
-	if (!CloseHandle(extra.controlingData.hWriteSem)) {
-		_tprintf_s(TEXT("[ERRO] Ao fechar Handle Mutex hWriteSem\n"));
-		ExitProcess(-1);
-	}
+	CloseHandle(hThread);
+	CloseHandle(hStdout);
+	CloseHandle(extra.controlingData.hReadSem);
+	CloseHandle(extra.controlingData.hWriteSem);
 
 	return 0;
 }

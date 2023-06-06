@@ -38,16 +38,16 @@ DWORD WINAPI GetInput(LPVOID param) {
 	pos.X = 0;
 	pos.Y = 5;
 	DWORD flag = 0;
+	const char* message = "FECHA";
 	do {
 		DWORD temp = WaitForSingleObject(pdata->controlingData.hEvent, 10000);
 		if (temp == WAIT_TIMEOUT) {
-			_tprintf_s(TEXT("[TIMEOUT] Servidor terminou.\n"));
-			flag = -1;
+			_tprintf_s(TEXT("\nServidor foi encerrado!\n"));
 			break;
 		}
 		temp = WaitForSingleObject(pdata->controlingData.hMutex, 10000);
 		if (temp == WAIT_TIMEOUT) {
-			_tprintf_s(TEXT("[TIMEOUT] Servidor terminou.\n"));
+			_tprintf_s(TEXT("\nServidor foi encerrado!\n"));
 			flag = -1;
 			break;
 		}

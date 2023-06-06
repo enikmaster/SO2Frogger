@@ -7,6 +7,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <time.h>
 #include <io.h>
 
 #define programa "servidor"

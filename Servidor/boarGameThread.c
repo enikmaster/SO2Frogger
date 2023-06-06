@@ -2,17 +2,18 @@
 #include "..\Froggerino\froggerino.h"
 
 DWORD WINAPI ThreadsFaixa(LPVOID param) {
+	// TODO: Alterar o random
+	srand(time(NULL));
 	Info* pData = (Info*)param;
 	COORD pos = { 0,0 };
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
-
-	
 	int i = 0, j = 0;
 	WaitForSingleObject(pData->hEventStart, INFINITE);
 	do {
-		WaitForSingleObject(pData->hMutexArray, INFINITE);
+		EnterCriticalSection(&pData->cs);
 		if(pData->colocaObjeto) {
 			do{
+				// TODO: Alterar o random
 				DWORD random_num = rand() % (20 - 0 + 1);
 				if (pData->arrayGame[pData->nFaixaResp][random_num] == TEXT(' ')) {
 					pData->arrayGame[pData->nFaixaResp][random_num] = pData->o.o;
@@ -52,24 +53,25 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 					}
 				}
 			}
-			ReleaseMutex(pData->hMutexArray);
+			SetEvent(pData->hEventSendToBoard);
+			LeaveCriticalSection(&pData->cs);
 		}
 		else {
-			ReleaseMutex(pData->hMutexArray);
+			LeaveCriticalSection(&pData->cs);
 			if (!pData->moving && pData->allMoving) {
 				WaitForSingleObject(pData->hEventPause, INFINITE);
 				ResetEvent(pData->hEventPause);
 			}
 			else if(!pData->moving && !pData->allMoving){
 				WaitForSingleObject(pData->hEventRemovePause, 3000);
-				WaitForSingleObject(pData->hMutexArray, INFINITE);
+				EnterCriticalSection(&pData->cs);
 				pData->moving = TRUE;
 				pData->allMoving = TRUE;
 				ResetEvent(pData->hEventRemovePause);
-				ReleaseMutex(pData->hMutexArray);
+				LeaveCriticalSection(&pData->cs);
 			}
 		}
-		Sleep(1000);
+		Sleep(700);
 	} while (pData->end);
 
 	ExitThread(1);
@@ -80,7 +82,7 @@ DWORD WINAPI LeComandosOperadoresThread(LPVOID param) {
 	BufferCell infoToMake;
 	while (pdata->infoControl->end) {
 		WaitForSingleObject(pdata->hReadSem, INFINITE);
-		WaitForSingleObject(pdata->hMutex, INFINITE);
+		WaitForSingleObject(pdata->hMutex, INFINITE); //mutex unico da memória partilhada
 		//Sera que preciso Mutex de protecao do buffer?
 		CopyMemory(&infoToMake, &pdata->sharedMem->buffer[pdata->sharedMem->rP++], sizeof(pdata->sharedMem->buffer));
 		if (pdata->sharedMem->rP == BUFFER_SIZE)
@@ -231,14 +233,17 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 		ExitProcess(1);
 	}
 
-	//Preencher array randomly 
+	CRITICAL_SECTION cs_;
+	InitializeCriticalSection(&cs_);
+
+	HANDLE EnviaEvento = CreateEvent(NULL, TRUE, FALSE, NULL);
 
 	for (int i = 0; i < dados.faixa; i++) {
 		send[i].id = i;
 		send[i].nFaixaResp = dados.faixa - i - 1;
 		send[i].arrayGame = boardGameArray;
 		send[i].o = o;
-		send[i].veloc = dados.faixa + i * 10;
+		send[i].veloc = (rand() % (4))+1;
 		send[i].moving = TRUE;
 		send[i].allMoving = TRUE;
 		send[i].colocaObjeto = FALSE;
@@ -246,6 +251,8 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 		send[i].hMutexArray = hMutexArray;
 		send[i].hEventStart = hEventStart;
 		send[i].hEventPause = CreateEvent(NULL, TRUE, FALSE, NULL);
+		send[i].hEventSendToBoard = EnviaEvento;
+		send[i].cs = cs_; //rever com stor
 
 		if (send[i].hEventPause == NULL) {
 			_tprintf_s(TEXT("[ERRO] Erro a criar event\n"));
@@ -308,17 +315,24 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	DWORD x = 0;
 	HANDLE fechar = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ThreadVeTeclado, (LPVOID)&x, 0, NULL);
 	do {
+		
+		WaitForSingleObject(EnviaEvento, INFINITE);
 		WaitForSingleObject(hMutexArray, INFINITE);
+		EnterCriticalSection(&cs_);
 		for (int i = 0; i < dados.faixa; i++) {
 			for (int j = 0; j < 20; j++) {
 				//_tprintf_s(TEXT(" %c "), boardGameArray[i][j]);
 				a.sharedMem->gameShared[i][j] = boardGameArray[i][j];
 			}
 		}
-		ReleaseMutex(hMutexArray, INFINITE);
+		LeaveCriticalSection(&cs_);
+		ReleaseMutex(hMutexArray);
 		SetEvent(a.hEvent);
+		ResetEvent(EnviaEvento);
 	} while (x==0);
+	
 	_tprintf_s(TEXT("Vai encerrar..."));
+
 	for (int i = 0; i < dados.faixa; i++) {
 		send[i].end = 0;
 		WaitForSingleObject(hThreads[i], INFINITE);

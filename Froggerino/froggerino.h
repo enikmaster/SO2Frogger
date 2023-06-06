@@ -59,7 +59,9 @@ FROGGERINO_API typedef struct INFO { // Informação completa sobre o jogo
 	HANDLE hEventStart;
 	HANDLE hEventPause;
 	HANDLE hEventRemovePause;
+	HANDLE hEventSendToBoard;
 	HANDLE hStdout;
+	CRITICAL_SECTION cs;
 
 	objs o; //objetos
 	// TODO:

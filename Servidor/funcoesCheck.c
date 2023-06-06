@@ -9,11 +9,11 @@ HANDLE checkStart() {
 		CloseHandle(hMutex);
 		ExitProcess(0);
 	}
-	/*if (GetLastError() == ERROR_ALREADY_EXISTS) {
+	if (GetLastError() == ERROR_ALREADY_EXISTS) {
 		_tprintf_s(TEXT("Já existe um servidor a ser executado."));
 		CloseHandle(hMutex);
 		ExitProcess(0);
-	}*/
+	}
 	return hMutex;
 }
 
@@ -37,6 +37,7 @@ void checkArgs(int x, char** args, FaixaVelocity* dados) {
 		else {
 			_tprintf_s(TEXT("[WARNING] Os argumentos que passou não são válidos, vamos usar uns predefinidos!\n"));
 			setDadosEstrutura(dados);
+			return;
 		}
 	}
 	else if (x == 1 || x > 2) // número de argumentos inválido
@@ -119,9 +120,10 @@ int checkIfNumero(char* arg1, char* arg2) {
 // verifica se os números são válidos
 int checkIfValidNumber(char* arg1, char* arg2) {
 	// verifica se são positivos
-	if (_tstoi(arg1) <= 0 || _tstoi(arg2) <= 0)
+	int x = _tstoi(arg1);
+	int y = _tstoi(arg2);
+	if (x <= 0 || y <= 0 || x > 8 )
 		return -1;
-	// falta verificar se estão entre x e y
 	return 0;
 }
 
@@ -149,17 +151,39 @@ void setDadosEstrutura(FaixaVelocity* dados) {
 		// RegQueryValueExA(temp, keyValueNameV, NULL, NULL, (LPBYTE)&dados->velocity, &size)
 		if (RegQueryValueExA(temp, keyValueNameF, NULL, NULL, (LPBYTE)&dados->faixa, &size) == ERROR_SUCCESS)
 			_tprintf_s(TEXT("Faixas: %d\n"), dados->faixa);
-		else
-			_tprintf_s(TEXT("[ERRO] Erro a criar/abrir key.\n"));
-
-		if (RegQueryValueExA(temp, keyValueNameV, NULL, NULL, (LPBYTE)&dados->velocity, &size) == ERROR_SUCCESS)
+		if (RegQueryValueExA(temp, keyValueNameV, NULL, NULL, (LPBYTE)&dados->velocity, &size) == ERROR_SUCCESS) {
 			_tprintf_s(TEXT("Velocity: %d\n"), dados->velocity);
-		else
-			_tprintf_s(TEXT("[ERRO] Erro a criar/abrir key.\n"));
+			return;
+		}
 	}
-	else { //Não existe regkey ainda
 		dados->faixa = 10;
 		dados->velocity = 1;
-	}
+		ResultKey = RegSetValueEx(
+			temp,
+			TEXT(keyValueNameF),
+			0,
+			REG_DWORD,
+			(const BYTE*)&dados->faixa,
+			sizeof(dados->faixa));
+
+		if (ResultKey != ERROR_SUCCESS) {
+			_tprintf_s(TEXT("[ERRO] Erro ao escrever o valor de nFaixas na RegKey\n"));
+			RegCloseKey(ResultKey);
+			return -1;
+		}
+
+		ResultKey = RegSetValueEx(
+			temp,
+			TEXT(keyValueNameV),
+			0,
+			REG_DWORD,
+			(const BYTE*)&dados->velocity,
+			sizeof(dados->velocity));
+
+		if (ResultKey != ERROR_SUCCESS) {
+			_tprintf_s(TEXT("[ERRO] Erro ao escrever o valor Velocity na RegKey\n"));
+			RegCloseKey(ResultKey);
+			return -1;
+		}
 	RegCloseKey(temp);
 }

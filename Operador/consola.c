@@ -53,7 +53,7 @@ Comando checkInput(TCHAR* msg, infoextra* info, DWORD* AltFaixa, DWORD maxFaixas
 	secondArgStr[second_arg_index] = TEXT('\0');
 	secondArg = _tstoi(secondArgStr);
 	firstarg[first_arg_index] = TEXT('\0');
-	if ((secondArg < 2 || secondArg > maxFaixas - 1) && count > 1) {
+	if ((secondArg < 2 || secondArg > maxFaixas - 1) && count >= 1) {
 		return CMD_ERRO;
 	}
 	*AltFaixa = secondArg;

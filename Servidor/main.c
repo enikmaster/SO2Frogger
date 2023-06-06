@@ -40,7 +40,6 @@ int _tmain(int argc, TCHAR** argv) {
 
 	HANDLE hMutex = checkStart();
 	if (hMutex == NULL) {
-		//_tprintf_s(TEXT("[ERRO] Já existe um servidor a ser executado.\n"));
 		CloseHandle(hMutex);
 		ExitProcess(0);
 	}

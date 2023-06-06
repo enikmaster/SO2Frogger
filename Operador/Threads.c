@@ -37,15 +37,22 @@ DWORD WINAPI GetInput(LPVOID param) {
 	COORD pos;
 	pos.X = 0;
 	pos.Y = 5;
-
-
+	DWORD flag = 0;
 	do {
-		WaitForSingleObject(pdata->controlingData.hEvent, INFINITE);
-		WaitForSingleObject(pdata->controlingData.hMutex, INFINITE);
-		CopyMemory(&localBG, pdata->controlingData.sharedMem->gameShared, sizeof(pdata->controlingData.sharedMem->gameShared));
-		if (!ReleaseMutex(pdata->controlingData.hMutex)) {
+		DWORD temp = WaitForSingleObject(pdata->controlingData.hEvent, 10000);
+		if (temp == WAIT_TIMEOUT) {
+			_tprintf_s(TEXT("[TIMEOUT] Servidor terminou.\n"));
+			flag = -1;
 			break;
 		}
+		temp = WaitForSingleObject(pdata->controlingData.hMutex, 10000);
+		if (temp == WAIT_TIMEOUT) {
+			_tprintf_s(TEXT("[TIMEOUT] Servidor terminou.\n"));
+			flag = -1;
+			break;
+		}
+		CopyMemory(&localBG, pdata->controlingData.sharedMem->gameShared, sizeof(pdata->controlingData.sharedMem->gameShared));
+		if (!ReleaseMutex(pdata->controlingData.hMutex)) break;
 		ResetEvent(pdata->controlingData.hEvent);
 		WaitForSingleObject(pdata->hMutex, INFINITE);
 		GetConsoleScreenBufferInfo(pdata->hStdout, &csbi);
@@ -53,17 +60,17 @@ DWORD WINAPI GetInput(LPVOID param) {
 		_tprintf_s(TEXT("\n-    -    -    -    -    -    -    -    -    -    -    -    - \n"));
 		showBG(localBG, pdata->controlingData.sharedMem->faixaMax);
 		SetConsoleCursorPosition(pdata->hStdout, csbi.dwCursorPosition);
-		if (!ReleaseMutex(pdata->hMutex)) {
-			break;
-		}
+		if (!ReleaseMutex(pdata->hMutex)) break;
 		Sleep(500);
 	} while (!pdata->controlingData.fechar);
 
-	if (!CloseHandle(hMapFile))
-		_tprintf_s(TEXT("[ERRO] Erro fechar Handle do hMapFile.\n"));
-	if (!CloseHandle(hEvent))
-		_tprintf_s(TEXT("[ERRO] Erro fechar Handle do hMapFile.\n"));
-	if (!CloseHandle(hMutex))
-		_tprintf_s(TEXT("[ERRO] Erro fechar Handle do hMapFile.\n"));
+	if (!UnmapViewOfFile(pdata->controlingData.sharedMem));
+	if (!CloseHandle(hMapFile));
+		//_tprintf_s(TEXT("[ERRO] Erro fechar Handle do hMapFile.\n"));
+	if (!CloseHandle(hEvent));
+		//_tprintf_s(TEXT("[ERRO] Erro fechar Handle do hMapFile.\n"));
+	if (!CloseHandle(hMutex));
+		//_tprintf_s(TEXT("[ERRO] Erro fechar Handle do hMapFile.\n"));
+	if (flag == -1) CloseHandle(pdata->hMutex);
 	ExitThread(1);
 }

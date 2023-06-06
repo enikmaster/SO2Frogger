@@ -80,7 +80,10 @@ int _tmain(int argc, TCHAR** argv) {
 		pos.Y = YINPUTS;
 		SetConsoleCursorPosition(hStdout, pos);
 		_fgetts(msg, sizeof(msg) / sizeof(TCHAR), stdin);
-		WaitForSingleObject(extra.hMutex, INFINITE);
+
+		// Alterou-se esta parte
+		DWORD temp = WaitForSingleObject(extra.hMutex, 5000);
+		if (temp == WAIT_TIMEOUT) break;
 
 		if (count > 0) {
 			pos.X = 0;

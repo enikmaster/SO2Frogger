@@ -58,7 +58,7 @@ int _tmain(int argc, TCHAR** argv) {
 	}
 	int count = 0;
 	TCHAR msg[TAMWORD];
-
+	DWORD flagt = 0;
 	while (1) {
 		BufferCell infoToServer;
 		infoToServer.f1 = 0;
@@ -73,6 +73,7 @@ int _tmain(int argc, TCHAR** argv) {
 		_tprintf_s(TEXT("Comando a enviar: "));
 		if (!ReleaseMutex(extra.hMutex)) {
 			_tprintf_s(TEXT("[ERRO] Mutex local encerrado.\n"));
+			flagt = -1;
 			ExitProcess(-1);
 		}
 
@@ -83,7 +84,10 @@ int _tmain(int argc, TCHAR** argv) {
 
 		// Alterou-se esta parte
 		DWORD temp = WaitForSingleObject(extra.hMutex, 5000);
-		if (temp == WAIT_TIMEOUT) break;
+		if (temp == WAIT_TIMEOUT) {
+			flagt = -1;
+			break;
+		}
 
 		if (count > 0) {
 			pos.X = 0;
@@ -158,8 +162,8 @@ int _tmain(int argc, TCHAR** argv) {
 			ExitProcess(-1);
 		};
 	}
-
-	WaitForSingleObject(hThread, INFINITE);
+	_tprintf_s(TEXT("Cenas\n"));
+	if(flagt != -1) WaitForSingleObject(hThread, INFINITE);
 
 	if(!CloseHandle(extra.hMutex)) {
 		_tprintf_s(TEXT("[ERRO] Mutex local encerrado.\n"));

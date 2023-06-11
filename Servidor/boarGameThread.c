@@ -133,7 +133,43 @@ DWORD WINAPI ThreadVeTeclado(LPVOID param) {
 	*x = 1;
 	ExitThread(0);
 }
+BOOL ConnectToNewClient(HANDLE hPipe, LPOVERLAPPED lpo)
+{
+	BOOL fConnected, fPendingIO = FALSE;
 
+	// Start an overlapped connection for this pipe instance. 
+	fConnected = ConnectNamedPipe(hPipe, lpo);
+
+	// Overlapped ConnectNamedPipe should return zero. 
+	if (fConnected)
+	{
+		printf("ConnectNamedPipe failed with %d.\n", GetLastError());
+		return 0;
+	}
+
+	switch (GetLastError())
+	{
+		// The overlapped connection in progress. 
+	case ERROR_IO_PENDING:
+		fPendingIO = TRUE;
+		break;
+
+		// Client is already connected, so signal an event. 
+
+	case ERROR_PIPE_CONNECTED:
+		if (SetEvent(lpo->hEvent))
+			break;
+
+		// If an error occurs during the connect operation... 
+	default:
+	{
+		printf("ConnectNamedPipe failed with %d.\n", GetLastError());
+		return 0;
+	}
+	}
+
+	return fPendingIO;
+}
 DWORD WINAPI ControlaPipesF(LPVOID param) {
 	ControlaPipes* pdata = (LPVOID*)param;
 	DWORD  dwWait, cbRet, dwErro;
@@ -176,7 +212,6 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 		pdata->pipeMgm[i].dwState = pdata->pipeMgm[i].fPendingIO ? CONNECTING_STATE : READING_STATE;
 	}
 	do{
-		x++;
 		dwWait = WaitForMultipleObjects(INSTANCES, pdata->gere->EventosInstancias, FALSE, INFINITE);
 		int i = dwWait - WAIT_OBJECT_0;
 		if (i<0 || i >(INSTANCES - 1)) {
@@ -197,17 +232,34 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 							_tprintf_s(TEXT("[ERRO] %d.\n"), GetLastError());
 							ExitThread(-1);
 						}
-						if (i == 0)
-							pdata->sapoAControlar = 0;
-						else
-							pdata->sapoAControlar = 1;
-						ResumeThread(pdata->ThreadsParaSapo[i]);
 						pdata->pipeMgm[i].dwState = READING_STATE;
 						break;
 				case READING_STATE:
-					continue;
+					if (!Sucesso || cbRet == 0) {
+
+						DisconnectnamedPipe(pdata->pipeMgm[i].hPipeInst);
+						pdata->pipeMgm[i].fPendingIO = ConnectNamedPipe(pdata->pipeMgm[i].hPipeInst, &pdata->pipeMgm[i].oOverlap);
+						pdata->pipeMgm[i].dwState = pdata->pipeMgm[i].fPendingIO ? CONNECTING_STATE : READING_STATE;
+						continue;
+					}
+					pdata->pipeMgm[i].cbRead = cbRet;
+					if (i == 0)
+						pdata->sapoAControlar = 0;
+					else
+						pdata->sapoAControlar = 1;
+					ResumeThread(pdata->ThreadsParaSapo[i]);
+					pdata->pipeMgm[i].dwState = WRITING_STATE;
 				case WRITING_STATE:
-					continue;
+					if (!Sucesso || cbRet != pdata->pipeMgm[i].cbToWrite)
+					{
+						DisconnectNamedPipe(pdata->pipeMgm[i].hPipeInst);
+						pdata->pipeMgm[i].fPendingIO = ConnectNamedPipe(pdata->pipeMgm[i].hPipeInst, &pdata->pipeMgm[i].oOverlap);
+						pdata->pipeMgm[i].dwState = pdata->pipeMgm[i].fPendingIO ? CONNECTING_STATE : READING_STATE;
+						continue;
+					}
+
+					pdata->pipeMgm[i].dwState = READING_STATE;
+					break;
 				default:
 					_tprintf_s(TEXT("[ERRO] Estado dos pipes inválido\n"));
 					ExitThread(-1);
@@ -215,8 +267,8 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 
 		}
 	
-	} while (x < 2);
-	//fazerwait pelas threads do cliente e escritor
+	} while (1);
+	WaitForMultipleObjects(INSTANCES, pdata->ThreadsParaSapo, TRUE, INFINITE);
 	ExitThread(0);
 }
 DWORD WINAPI ControlaSapos(LPVOID param) {
@@ -227,23 +279,106 @@ DWORD WINAPI ControlaSapos(LPVOID param) {
 	}
 	else 
 		sapoAcontrolar = &pdata->saposb;
+	BOOL sucesso;
 	DWORD ret;
 	TCHAR buf[256];
 	DWORD nBytes;
+
 	while (1) {
-		ret = ReadFile(NOMEPIPE, buf, sizeof(buf), &nBytes, NULL);
-		buf[nBytes / sizeof(TCHAR)] = '\0';
-		if (!ret || !nBytes) {
-			break; //desligou-se?
-		}
-		//criar instruções 
-		EnterCriticalSection(&pdata->gere->x);
-		//faz alterações que tem a fazer 
-		//enviar tabuleiro atualizado
-		LeaveCriticalSection(&pdata->gere->x);
-		SetEvent(pdata->gere->EventoSO);
+		
+			sucesso = ReadFile(
+				pdata->pipeMgm->hPipeInst,
+				pdata->pipeMgm->chRequest,
+				BUFSIZE * sizeof(TCHAR),
+				&nBytes,
+				&pdata->pipeMgm->oOverlap
+			);
+			if (!sucesso || nBytes == 0) {
+				// Error or connection closed by client/
+				if (GetLastError() == ERROR_IO_PENDING) {
+					DWORD dwWait = WaitForSingleObject(pdata->pipeMgm->oOverlap.hEvent, INFINITE);
+					if (dwWait == WAIT_OBJECT_0)
+					{
+						// The read operation has completed
+						DWORD cbBytesTransferred;
+						sucesso = GetOverlappedResult(
+							pdata->pipeMgm->hPipeInst,
+							&(pdata->pipeMgm->oOverlap),
+							&cbBytesTransferred,
+							FALSE);
+						if (sucesso || cbBytesTransferred == 0)
+						{
+							// Handle error or connection closed by client
+							break;
+						}
+					}
+					else
+					{
+						// Error in WaitForSingleObject
+					   // Handle error
+						break;
+					}
+				}
+				else
+				{
+					// Error in ReadFile
+					// Handle error
+					break;
+				}
+			}
+			EnterCriticalSection(&pdata->gere->x);
+			//SE correr bem vamos conseguir extrair a informacao do pedido do Sapo fazer as alterações necessárias avisar o operador 
+			SetEvent(pdata->gere->EventoSO);
+			LeaveCriticalSection(&pdata->gere->x);
+			//depois vamos escrever acho que será necessario mutex para não haver concorrencia na instancia
+			sucesso = WriteFile(
+				pdata->pipeMgm->hPipeInst,
+				pdata->pipeMgm->chReply,
+				pdata->pipeMgm->cbToWrite,
+				NULL,
+				&pdata->pipeMgm->oOverlap
+			);
+			if (!sucesso) {
+				if (GetLastError() != ERROR_IO_PENDING)
+				{
+					_tprintf_s(TEXT("Error writing to pipe. Error code: %d\n"), GetLastError());
+					break;
+				}
+				DWORD dwWait = WaitForSingleObject(pdata->pipeMgm->oOverlap.hEvent, INFINITE);
+				if (dwWait == WAIT_OBJECT_0)
+				{
+					DWORD aEnviar;
+					sucesso = GetOverlappedResult(
+						pdata->pipeMgm->hPipeInst,
+						&pdata->pipeMgm->oOverlap,
+						&aEnviar,
+						FALSE
+					);
+					if (!sucesso || aEnviar != pdata->pipeMgm->cbToWrite)
+					{
+						_tprintf_s(TEXT("Error writing to pipe. Error code: %d\n"), GetLastError());
+						//handle error
+						break;
+					}
+					else
+					{
+						// Error in WaitForSingleObject
+						// Handle error
+					}
+				}
+				else
+				{
+					// Error in WriteFile
+					// Handle error
+				}
+			}
 	}
-	
+
+	// Clean up and close the pipe handle
+	DisconnectNamedPipe(pdata->pipeMgm->hPipeInst);
+	CloseHandle(pdata->pipeMgm->hPipeInst);
+	CloseHandle(pdata->pipeMgm->oOverlap.hEvent);
+	ExitThread(0);
 }
 
 void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {

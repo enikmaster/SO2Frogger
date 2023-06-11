@@ -9,7 +9,9 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
 	int i = 0, j = 0;
 	WaitForSingleObject(pData->hEventStart, INFINITE);
+	DWORD velocidade = 700;
 	do {
+		//Se for the timeout 
 		EnterCriticalSection(&pData->cs);
 		if(pData->colocaObjeto) {
 			do{
@@ -71,6 +73,7 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 				LeaveCriticalSection(&pData->cs);
 			}
 		}
+		//escrever no/nos namedpipe/s
 		Sleep(700);
 	} while (pData->end);
 
@@ -83,7 +86,6 @@ DWORD WINAPI LeComandosOperadoresThread(LPVOID param) {
 	while (pdata->infoControl->end) {
 		WaitForSingleObject(pdata->hReadSem, INFINITE);
 		WaitForSingleObject(pdata->hMutex, INFINITE); //mutex unico da memória partilhada
-		//Sera que preciso Mutex de protecao do buffer?
 		CopyMemory(&infoToMake, &pdata->sharedMem->buffer[pdata->sharedMem->rP++], sizeof(pdata->sharedMem->buffer));
 		if (pdata->sharedMem->rP == BUFFER_SIZE)
 			pdata->sharedMem->rP = 0;
@@ -130,8 +132,120 @@ DWORD WINAPI ThreadVeTeclado(LPVOID param) {
 	}while(1);
 	*x = 1;
 	ExitThread(0);
+}
+
+DWORD WINAPI ControlaPipesF(LPVOID param) {
+	ControlaPipes* pdata = (LPVOID*)param;
+	DWORD  dwWait, cbRet, dwErro;
+	BOOL Sucesso;
+	DWORD x = 2;
+	for (DWORD i = 0; i < INSTANCES; i++) {
+		pdata->gere->EventosInstancias[i] = CreateEvent(
+			NULL,
+			TRUE,
+			FALSE,
+			NULL);
+		if (pdata->gere->EventosInstancias[i] == NULL) {
+			_tprintf_s(TEXT("[ERRO] Erro ao criar evento para Namedpipe Instancia falhou.\n"));
+			ExitThread(-1);
+		}
+		pdata->pipeMgm[i].oOverlap.hEvent = pdata->gere->EventosInstancias[i];
+		pdata->pipeMgm[i].oOverlap.Offset = 0;
+		pdata->pipeMgm[i].oOverlap.OffsetHigh = 0;
+		pdata->pipeMgm[i].hPipeInst = CreateNamedPipe(
+			NOMEPIPE,
+			PIPE_ACCESS_DUPLEX |     // read/write access 
+			FILE_FLAG_OVERLAPPED,    // overlapped mode 
+			PIPE_TYPE_MESSAGE |      // message-type pipe 
+			PIPE_READMODE_MESSAGE |  // message-read mode 
+			PIPE_WAIT,               // blocking mode 
+			INSTANCES,               // number of instances 
+			BUFSIZE * sizeof(TCHAR),   // output buffer size 
+			BUFSIZE * sizeof(TCHAR),   // input buffer size 
+			PIPE_TIMEOUT,            // client time-out 
+			NULL);                   // default security attributes 
+		if (pdata->pipeMgm[i].hPipeInst == NULL) {
+			_tprintf_s(TEXT("[ERRO] Erro ao criar instancia de namedpipe.\n"));
+			ExitThread(-1);
+		}
+
+		pdata->pipeMgm[i].fPendingIO = ConnectNamedPipe(
+			pdata->pipeMgm[i].hPipeInst,
+			&pdata->pipeMgm[i].oOverlap
+		);
+		pdata->pipeMgm[i].dwState = pdata->pipeMgm[i].fPendingIO ? CONNECTING_STATE : READING_STATE;
+	}
+	do{
+		x++;
+		dwWait = WaitForMultipleObjects(INSTANCES, pdata->gere->EventosInstancias, FALSE, INFINITE);
+		int i = dwWait - WAIT_OBJECT_0;
+		if (i<0 || i >(INSTANCES - 1)) {
+			_tprintf_s(TEXT("[ERRO] Está fora do range.\n"));
+			ExitThread(-1);
+		}
+
+		if (pdata->pipeMgm[i].fPendingIO) {
+			Sucesso = GetOverlappedResult(
+				pdata->pipeMgm[i].hPipeInst,
+				&pdata->pipeMgm[i].oOverlap,
+				&cbRet,
+				FALSE);
+			switch (pdata->pipeMgm[i].dwState) {
+				//Espera conecao
+				case CONNECTING_STATE:
+						if (!Sucesso) {
+							_tprintf_s(TEXT("[ERRO] %d.\n"), GetLastError());
+							ExitThread(-1);
+						}
+						if (i == 0)
+							pdata->sapoAControlar = 0;
+						else
+							pdata->sapoAControlar = 1;
+						ResumeThread(pdata->ThreadsParaSapo[i]);
+						pdata->pipeMgm[i].dwState = READING_STATE;
+						break;
+				case READING_STATE:
+					continue;
+				case WRITING_STATE:
+					continue;
+				default:
+					_tprintf_s(TEXT("[ERRO] Estado dos pipes inválido\n"));
+					ExitThread(-1);
+			}
+
+		}
+	
+	} while (x < 2);
+	//fazerwait pelas threads do cliente e escritor
+	ExitThread(0);
+}
+DWORD WINAPI ControlaSapos(LPVOID param) {
+	ControlaPipes* pdata = (LPVOID*)param;
+	SAPO* sapoAcontrolar;
+	if (pdata->sapoAControlar == 0) {
+		sapoAcontrolar = &pdata->saposa;
+	}
+	else 
+		sapoAcontrolar = &pdata->saposb;
+	DWORD ret;
+	TCHAR buf[256];
+	DWORD nBytes;
+	while (1) {
+		ret = ReadFile(NOMEPIPE, buf, sizeof(buf), &nBytes, NULL);
+		buf[nBytes / sizeof(TCHAR)] = '\0';
+		if (!ret || !nBytes) {
+			break; //desligou-se?
+		}
+		//criar instruções 
+		EnterCriticalSection(&pdata->gere->x);
+		//faz alterações que tem a fazer 
+		//enviar tabuleiro atualizado
+		LeaveCriticalSection(&pdata->gere->x);
+		SetEvent(pdata->gere->EventoSO);
+	}
 	
 }
+
 void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	objs o;
 	o.c = TEXT('C');
@@ -232,6 +346,10 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 		CloseHandle(hThreads);
 		ExitProcess(1);
 	}
+	SAPO sapos[2];
+	ControlaPipes cp;
+	cp.saposa = &sapos[0];
+	cp.saposb = &sapos[1];
 
 	CRITICAL_SECTION cs_;
 	InitializeCriticalSection(&cs_);
@@ -239,6 +357,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	HANDLE EnviaEvento = CreateEvent(NULL, TRUE, FALSE, NULL);
 
 	for (int i = 0; i < dados.faixa; i++) {
+		send[i].sapos = sapos;
 		send[i].id = i;
 		send[i].nFaixaResp = dados.faixa - i - 1;
 		send[i].arrayGame = boardGameArray;
@@ -264,6 +383,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 		}
 
 		send[i].hEventRemovePause = CreateEvent(NULL, TRUE, FALSE, NULL);
+
 		if (send[i].hEventRemovePause == NULL) {
 			_tprintf_s(TEXT("[ERRO] Erro a criar event\n"));
 			CloseHandle(send[i].hEventRemovePause);
@@ -300,13 +420,58 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	}
 
 
-	HANDLE hLeitura = CreateThread(NULL, 0, LeComandosOperadoresThread, (LPVOID)&a, 0, NULL); //proteger
+	HANDLE hLeitura = CreateThread(NULL, 0, LeComandosOperadoresThread, (LPVOID)&a, 0, NULL);
 	if (hLeitura == NULL) {
 		_tprintf_s(TEXT("[ERRO] Erro ao criar thread de leitura.\n"));
 		CloseHandle(hLeitura);
-		ExitProcess(1);
+		ExitProcess(-1);
 	}
 	TCHAR character;
+	// 
+	PIPEINST Pinstacias[INSTANCES];
+	//
+	Eventos_Mutexs Gestao;
+	Gestao.EventoSO = EnviaEvento;
+	Gestao.hMutexArrayJogo = hMutexArray;
+	Gestao.StartGame = hEventStart;
+	Gestao.x = cs_;
+	//
+
+	cp.GameBoard = boardGameArray;
+	cp.gere = &Gestao;
+	cp.pipeMgm = &Pinstacias;
+
+	for (int i = 0; i < INSTANCES; i++) {
+		cp.ThreadsParaSapo[i] = ControlaSapos(NULL, 0, (LPTHREAD_START_ROUTINE)ThreadsFaixa, (LPVOID)&cp, CREATE_SUSPENDED, 0);
+		if (cp.ThreadsParaSapo[i] == NULL) {
+			_tprintf_s(TEXT("[ERRO] Erro ao criar threads para gerir os sapos. \n"));
+			CloseHandle(cp.ThreadsParaSapo[i]);
+			ExitProcess(-1);
+		}
+	}
+	//Preciso de estrutura que passe o tabuleiro do jogo, mutex e evento para dar start
+	HANDLE ThreadPipes = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ControlaPipesF, (LPVOID)&cp, 0, NULL);
+	if (ThreadPipes == NULL) {
+		_tprintf_s(TEXT("[ERRO] Erro ao criar thread NamedPipes. \n"));
+		CloseHandle(ThreadPipes);
+		ExitProcess(-1);
+	}
+	HANDLE ThreadControlaSapos = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ControlaSapos, (LPVOID)&cp, 0, NULL);
+	if (ThreadControlaSapos == NULL) {
+		_tprintf_s(TEXT("[ERRO] Erro ao criar thread NamedPipes. \n"));
+		CloseHandle(ThreadPipes);
+		ExitProcess(-1);
+	}
+	// evento que deixa o jogo jogar no lado do cliente consoante as suas opções 
+	
+	//HANDL hEventStart para quando receber um jogador dar start no jogo (perceber se começa em PvP ou SinglePlayer
+	//boardGameArray[i][j] para enviar
+	// Sinalizar thread que trata de mover os sapos 
+	//CriticalSection to send the boardstaticly
+	//EnviaEvento para escrever atualização dos carros a mover 
+	//Lancar thread para controlar os sapos, sinalizar operador de que sapo foi movido Passar tabuleiro, array dos sapos , evento sinaliza operador
+
+	//////////////////////////////////////////////////////////
 	_tprintf_s(TEXT("Digite um enter para iniciar o jogo: "));
 	wscanf_s(TEXT("%lc"), &character);
 	SetEvent(hEventStart);

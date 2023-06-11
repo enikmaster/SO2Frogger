@@ -8,7 +8,7 @@
 #endif
 
 #define BUFFER_SIZE 10
-
+#define BUFSIZE 4096
 
 FROGGERINO_API typedef enum {
 	CMD_PARAR,    // uma palavra + um inteiro > 0 && < total de faixas
@@ -43,6 +43,25 @@ FROGGERINO_API typedef struct OBJECTO { // objetos do tabuleiro
 	TCHAR c; // carro
 	TCHAR o; // objeto
 } objs;
+FROGGERINO_API typedef struct SAPO {
+	int id;
+	int x;
+	int y;
+	int pontos;
+	int vidas;
+} SAPO;
+
+FROGGERINO_API typedef struct
+{
+	OVERLAPPED oOverlap;
+	HANDLE hPipeInst;
+	TCHAR chRequest[BUFSIZE];
+	DWORD cbRead;
+	TCHAR chReply[BUFSIZE];
+	DWORD cbToWrite;
+	DWORD dwState;
+	BOOL fPendingIO;
+} PIPEINST, * LPPIPEINST;
 
 FROGGERINO_API typedef struct INFO { // Informação completa sobre o jogo
 	TCHAR** arrayGame; //aqui feito
@@ -61,6 +80,7 @@ FROGGERINO_API typedef struct INFO { // Informação completa sobre o jogo
 	HANDLE hEventRemovePause;
 	HANDLE hEventSendToBoard;
 	HANDLE hStdout;
+	SAPO *sapos;
 	CRITICAL_SECTION cs;
 
 	objs o; //objetos

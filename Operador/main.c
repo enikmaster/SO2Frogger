@@ -162,7 +162,7 @@ int _tmain(int argc, TCHAR** argv) {
 		};
 	}
 	if (flagt != -1) {
-		WaitForSingleObject(hThread, INFINITE);
+		WaitForSingleObject(hThread, 5000);
 		CloseHandle(extra.hMutex);
 	}
 	CloseHandle(hThread);

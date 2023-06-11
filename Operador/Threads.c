@@ -64,13 +64,10 @@ DWORD WINAPI GetInput(LPVOID param) {
 		Sleep(500);
 	} while (!pdata->controlingData.fechar);
 
-	if (!UnmapViewOfFile(pdata->controlingData.sharedMem));
-	if (!CloseHandle(hMapFile));
-		//_tprintf_s(TEXT("[ERRO] Erro fechar Handle do hMapFile.\n"));
-	if (!CloseHandle(hEvent));
-		//_tprintf_s(TEXT("[ERRO] Erro fechar Handle do hMapFile.\n"));
-	if (!CloseHandle(hMutex));
-		//_tprintf_s(TEXT("[ERRO] Erro fechar Handle do hMapFile.\n"));
+	UnmapViewOfFile(pdata->controlingData.sharedMem);
+	CloseHandle(hMapFile);
+	CloseHandle(hEvent);
+	CloseHandle(hMutex);
 	if (flag == -1) CloseHandle(pdata->hMutex);
 	ExitThread(1);
 }

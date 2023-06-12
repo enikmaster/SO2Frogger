@@ -9,6 +9,7 @@
 
 #define BUFFER_SIZE 10
 #define BUFSIZE 4096
+#define INSTANCES 2
 
 FROGGERINO_API typedef enum {
 	CMD_PARAR,    // uma palavra + um inteiro > 0 && < total de faixas
@@ -61,7 +62,28 @@ FROGGERINO_API typedef struct
 	DWORD cbToWrite;
 	DWORD dwState;
 	BOOL fPendingIO;
+	BOOL ligado;
+	HANDLE hEvent;
+	HANDLE hEventoThread;
 } PIPEINST, * LPPIPEINST;
+
+
+FROGGERINO_API typedef struct Eventos_Mutexs {
+	HANDLE EventoSO; //sinaliza para atualizar tabuleiro
+	HANDLE hMutexArrayJogo;
+	HANDLE StartGame; //
+	CRITICAL_SECTION x;
+}Eventos_Mutexs;
+
+FROGGERINO_API typedef struct ControlaPipes {
+	int sapoAControlar;
+	TCHAR** GameBoard;
+	PIPEINST* pipeMgm;
+	SAPO* saposa;
+	SAPO* saposb;
+	Eventos_Mutexs* gere;
+	HANDLE ThreadsParaSapo[INSTANCES];
+}ControlaPipes;
 
 FROGGERINO_API typedef struct INFO { // Informação completa sobre o jogo
 	TCHAR** arrayGame; //aqui feito

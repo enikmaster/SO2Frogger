@@ -13,7 +13,7 @@
 #define programa "servidor"
 #define TAM 50
 #define key1is "Software\\TP"
-#define NOMEPIPE TEXT("\\\\.\\pipe\\mynamedpipe")
+#define NOMEPIPE TEXT("\\\\.\\pipe\\canal")
 #define keyValueNameF "Faixas" 
 #define keyValueNameV "Velocity"
 #define COLUMNS 20
@@ -49,43 +49,11 @@ typedef struct _CONTROLDATA { // informação para controlo de fluxo de dados
 } ControlData;
 // 
 //Para gestao de sapo a mover e ainda a informacao 
-typedef struct SAPO {
-	int id;
-	int x;
-	int y;
-	int pontos;
-	int vidas;
-} SAPO;
 
-typedef struct
-{
-	OVERLAPPED oOverlap;
-	HANDLE hPipeInst;
-	TCHAR chRequest[BUFSIZE];
-	DWORD cbRead;
-	TCHAR chReply[BUFSIZE];
-	DWORD cbToWrite;
-	DWORD dwState;
-	BOOL fPendingIO;
-} PIPEINST, * LPPIPEINST;
 
-typedef struct Eventos_Mutexs {
-	HANDLE EventoSO; //sinaliza para atualizar tabuleiro
-	HANDLE hMutexArrayJogo;
-	HANDLE EventosInstancias[INSTANCES];
-	HANDLE StartGame; //
-	CRITICAL_SECTION x;
-}Eventos_Mutexs;
 
-typedef struct ControlaPipes {
-	int sapoAControlar;
-	TCHAR** GameBoard;
-	PIPEINST *pipeMgm;
-	SAPO *saposa;
-	SAPO *saposb;
-	Eventos_Mutexs *gere;
-	HANDLE ThreadsParaSapo[INSTANCES];
-}ControlaPipes;
+
+
 //
 HANDLE checkStart(); //verificar se programa tem condições de ser executado
 void checkArgs(int x, TCHAR** args, FaixaVelocity* dados); //verificar argumentos

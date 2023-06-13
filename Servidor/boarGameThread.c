@@ -95,6 +95,11 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 											}
 										}
 									}
+									if (pData->arrayGame[pData->nFaixaResp][0] == pData->o.c) {
+										pData->arrayGame[pData->nFaixaResp][1] = pData->o.c; 
+										n++;
+										i++;
+									}
 									pData->arrayGame[pData->nFaixaResp][0] = pData->o.c;
 								}
 								else
@@ -116,6 +121,11 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 
 											}
 										}
+									}
+									if (pData->arrayGame[pData->nFaixaResp][i + 1] == pData->o.c) {
+										pData->arrayGame[pData->nFaixaResp][i + 2] = pData->o.c;
+										n++;
+										i++;
 									}
 									pData->arrayGame[pData->nFaixaResp][i + 1] = pData->o.c;
 								}
@@ -149,6 +159,7 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 											}
 										}
 									}
+									if(pData->arrayGame[pData->nFaixaResp])
 									pData->arrayGame[pData->nFaixaResp][COLUMNS - 1] = pData->o.c;
 								}
 								else

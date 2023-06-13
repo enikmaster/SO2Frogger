@@ -7,9 +7,32 @@
 #define FROGGERINO_API __declspec(dllimport)
 #endif
 
+#define programa "servidor"
+#define TAM 50
+#define key1is "Software\\TP"
+#define NOMEPIPE TEXT("\\\\.\\pipe\\canal")
+#define keyValueNameF "Faixas" 
+#define keyValueNameV "Velocity"
+#define ATUALIZA TEXT("ATUALIZA")
+#define STOPALL TEXT("STOPALL")
+#define COLUMNS 20
+#define JANELAX 60 
+#define JANELAY 40
 #define BUFFER_SIZE 10
-#define BUFSIZE 4096
+#define EVENTSHAREDMEM TEXT("EVENTOREAD")
+#define MUTEXSHAREDMEM TEXT("HMUTEX")
+#define CONNECTING_STATE 0 
+#define READING_STATE 1 
+#define WRITING_STATE 2 
 #define INSTANCES 2
+#define PIPE_TIMEOUT 5000
+#define BUFSIZE 4096
+#define NSAPOS 2
+#define TERMINOUJOGO TEXT("TERMINOUJOGO")
+#define TERINOUTEMPO TEXT("TERMINOUTEMPO")
+#define VIDAS 3
+#define NIVEISDEJOGO 5
+#define TEMPO 25500
 
 FROGGERINO_API typedef enum {
 	CMD_PARAR,    // uma palavra + um inteiro > 0 && < total de faixas
@@ -21,6 +44,13 @@ FROGGERINO_API typedef enum {
 	CMD_ERRO // comando inválido
 } Comando;
 
+FROGGERINO_API typedef struct _BUFFERCELL { // informação para ser lida pelo servidor
+	unsigned int id;
+	DWORD f1;
+	DWORD f2;
+} BufferCell;
+
+
 // estruturas a usar entre os vários programas
 FROGGERINO_API typedef struct FAIXAVELOCITY { // informação sobre a faixa
 	DWORD faixa;
@@ -28,8 +58,8 @@ FROGGERINO_API typedef struct FAIXAVELOCITY { // informação sobre a faixa
 } FaixaVelocity;
 
 FROGGERINO_API typedef struct POS { //posição para array, cada thread trada de escrever uma faixa
-	DWORD X;
-	DWORD Y;
+	unsigned int X;
+	unsigned int Y;
 } pos;
 
 FROGGERINO_API typedef struct BOARDGAME { // tabuleiro de jogo
@@ -45,13 +75,24 @@ FROGGERINO_API typedef struct OBJECTO { // objetos do tabuleiro
 	TCHAR o; // objeto
 } objs;
 FROGGERINO_API typedef struct SAPO {
-	int id;
-	int x;
-	int y;
-	int pontos;
-	int vidas;
+	BOOL activo;
+	BOOL move;
+	unsigned int vidas;
+	unsigned int temp;
+	unsigned int score;
+	pos pos_atual;
+	pos pos_inicial;
+	TCHAR* name;
 } SAPO;
 
+FROGGERINO_API typedef struct NIVEL {
+	unsigned int lvlActual;
+	unsigned int nCarros;
+	unsigned int velocidade;
+	BOOL sentido; //true -> fals <-
+	SAPO* sapos;
+	unsigned int tempo;
+} Nivel;
 FROGGERINO_API typedef struct
 {
 	OVERLAPPED oOverlap;
@@ -69,54 +110,15 @@ FROGGERINO_API typedef struct
 
 
 FROGGERINO_API typedef struct Eventos_Mutexs {
-	HANDLE EventoSO; //sinaliza para atualizar tabuleiro
+	HANDLE hEventoAtualiza; //sinaliza para atualizar tabuleiro
 	HANDLE hMutexArrayJogo;
-	HANDLE StartGame; //
+	HANDLE hEventStart; //Vai ser sinalizado apenas depois de se saber se são dois ou 1 sapo
+	HANDLE hStdout;
+	HANDLE hEventoTerminouTempo; //Sinaliza thread que tempo terminou para aquele nivel e vai carregar novo nivel corrigir tempo
+	HANDLE hEventoTerminouJogo; //Sinaliza thread que o jogo terminou
+	HANDLE hEventoStopAll; //Encerrar tudo
 	CRITICAL_SECTION x;
 }Eventos_Mutexs;
-
-FROGGERINO_API typedef struct ControlaPipes {
-	int sapoAControlar;
-	TCHAR** GameBoard;
-	PIPEINST* pipeMgm;
-	SAPO* saposa;
-	SAPO* saposb;
-	Eventos_Mutexs* gere;
-	HANDLE ThreadsParaSapo[INSTANCES];
-}ControlaPipes;
-
-FROGGERINO_API typedef struct INFO { // Informação completa sobre o jogo
-	TCHAR** arrayGame; //aqui feito
-	DWORD veloc; //velocidade 
-	DWORD nFaixaResp; //faixa de atuacao
-	DWORD id; //id
-	DWORD num;
-	DWORD end; // end
-	DWORD sentido; //if 1 direita if 0 esquerda
-	BOOL moving; //if true andar if false parar
-	BOOL allMoving;
-	BOOL colocaObjeto;
-	HANDLE hMutexArray;
-	HANDLE hEventStart;
-	HANDLE hEventPause;
-	HANDLE hEventRemovePause;
-	HANDLE hEventSendToBoard;
-	HANDLE hStdout;
-	SAPO *sapos;
-	CRITICAL_SECTION cs;
-
-	objs o; //objetos
-	// TODO:
-	unsigned int score; // pontuação
-	unsigned int time;  // tempo
-} Info;
-
-FROGGERINO_API typedef struct _BUFFERCELL { // informação para ser lida pelo servidor
-	unsigned int id;
-	DWORD f1;
-	DWORD f2;
-} BufferCell;
-
 FROGGERINO_API typedef struct _SHAREDMEM { // memória partilhada
 	unsigned int faixaMax;
 	unsigned int p;
@@ -126,16 +128,45 @@ FROGGERINO_API typedef struct _SHAREDMEM { // memória partilhada
 	BufferCell buffer[BUFFER_SIZE];
 	TCHAR gameShared[10][20];
 } SharedMem;
+FROGGERINO_API typedef struct ControlaPipes {
+	int sapoAControlar;
+	TCHAR** GameBoard;
+	PIPEINST* pipeMgm;
+	SAPO* saposa;
+	SAPO* saposb;
+	Eventos_Mutexs* gere;
+	HANDLE ThreadsParaSapo[INSTANCES];
+}ControlaPipes;
+FROGGERINO_API typedef struct INFO { // Informação completa sobre o jogo
+	TCHAR** arrayGame; //aqui feito
+	DWORD nFaixaResp; //faixa de atuacao
+	DWORD id; //id
+	DWORD numFaixasTotal;
+	DWORD* end; // end
+	BOOL moving; //if true andar if false parar
+	BOOL allMoving;
+	BOOL colocaObjeto;
+	BOOL sentidoFaixa;
+	HANDLE hEventPause; //Pausa individual
+	HANDLE hEventPauseGlobal; // Pausa e re sinaliza main thread que tem de atualizar o tabuleiro para operador e tambem sinaliza thread responsavel do sapo
+	Nivel* nivel;
+	Eventos_Mutexs* a;
+	SAPO* sapos;
+	objs o; //objetos
+} Info;
+FROGGERINO_API typedef struct _CONTROLDATA { // informação para controlo de fluxo de dados
+	unsigned int id;
+	HANDLE hMapFile;
+	SharedMem* sharedMem;
+	HANDLE hMutex;
+	HANDLE hEvent;
+	HANDLE hWriteSem; // n
+	HANDLE hReadSem;  // 1
+	Info* infoControl;
+} ControlData;
 
-//FROGGERINO_API typedef struct _CONTROLDATA { // informação para controlo de fluxo de dados
-//	unsigned int id;
-//	HANDLE hMapFile;
-//	SharedMem* sharedMem;
-//	HANDLE hMutex;
-//	HANDLE hEvent;
-//	HANDLE hWriteSem; // n
-//	HANDLE hReadSem;  // 1
-//} ControlData;
+
+
 
 // variáveis
 FROGGERINO_API int x;

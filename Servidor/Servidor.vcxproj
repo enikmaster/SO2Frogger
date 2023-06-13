@@ -143,6 +143,7 @@
     <ClCompile Include="boarGameThread.c" />
     <ClCompile Include="funcoesCheck.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="preencheStructs.c" />
     <ClCompile Include="SharedMemory.c" />
   </ItemGroup>
   <ItemGroup>

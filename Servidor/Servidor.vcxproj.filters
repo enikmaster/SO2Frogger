@@ -27,6 +27,9 @@
     <ClCompile Include="SharedMemory.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="preencheStructs.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="servidor.h">

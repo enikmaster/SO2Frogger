@@ -32,9 +32,9 @@ void PreencheNiveis(Nivel* x, SAPO* sp) {
 		if (i == 0)
 			x[i].nCarros = 1;
 		else
-			x[i].nCarros = i + 2;
+			x[i].nCarros = x[i-1].nCarros + 1;
 		x[i].velocidade = 1100 - x[i].lvlActual * 100;
 		x[i].sapos = sp;
-		x[i].tempo = TEMPO - x[i].lvlActual * 500;
+		x[i].tempo = TEMPO - x[i].lvlActual * 1000;
 	}
 }

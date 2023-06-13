@@ -8,6 +8,7 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
 	BOOL start = TRUE;
 	int i = 0, j = 0, z = 0;
+	DWORD exit = 0;
 	HANDLE hEventos[3];
 	hEventos[2] = pData->a->hEventoStopAll;
 	hEventos[1] = pData->a->hEventoTerminouJogo;
@@ -25,11 +26,12 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 			if (random_num == 1)
 				pData->sentidoFaixa = FALSE;
 		}
+		EnterCriticalSection(&pData->a->x);
 		do {
 			if (z == 1)
 			{
 				DWORD X = WaitForMultipleObjects(3, hEventos, FALSE, pData->nivel->velocidade);
-
+				EnterCriticalSection(&pData->a->x);
 				if (X == WAIT_TIMEOUT) {
 					if (pData->allMoving == FALSE)
 						start = FALSE;
@@ -45,7 +47,7 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 						break;
 					default:
 						reset = TRUE;
-						pData->end = 1;
+						exit = 1;
 						break;
 					}
 
@@ -56,7 +58,7 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 				z = 1;
 			if (start) {
 				n = 0;
-				EnterCriticalSection(&pData->a->x);
+				
 				if (pData->colocaObjeto) {
 					do {
 						DWORD random_num = rand() % (20 - 0 + 1);
@@ -176,8 +178,9 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 							}
 						}
 					}
-					SetEvent(pData->a->hEventoAtualiza);
 					LeaveCriticalSection(&pData->a->x);
+					SetEvent(pData->a->hEventoAtualiza);
+					
 				}
 				else {
 					LeaveCriticalSection(&pData->a->x);
@@ -190,14 +193,15 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 						EnterCriticalSection(&pData->a->x);
 						pData->moving = TRUE;
 						pData->allMoving = TRUE;
-						ResetEvent(pData->hEventPauseGlobal);
 						LeaveCriticalSection(&pData->a->x);
+						ResetEvent(pData->hEventPauseGlobal);
+						
 					}
 				}
 
 			}
 		} while (!reset);
-	} while (pData->end == 0);
+	} while (exit == 0);
 	_tprintf_s(TEXT("Thread a dar delete"));
 	ExitThread(1);
 }
@@ -235,14 +239,14 @@ DWORD WINAPI EstadoTabuleiro(LPVOID param) { //inicializar esta thread para faze
 		EnterCriticalSection(&pdata->a->x);
 		for (int i = pdata->numFaixasTotal - 1; i > 0; i--) {
 			for (int j = 0; j < COLUMNS; j++) {
-				pdata->arrayGame[i][j] == TEXT(" ");
+				pdata->arrayGame[i][j] = TEXT(' ');
 			}
 		}
 		for (int i = pdata->numFaixasTotal - 1; i > 0; i--) {
 			for (int j = 0; j < pdata->nivel->nCarros; j++) {
 				do {
 					DWORD numeroRandom = rand() % (20);
-					if (pdata->arrayGame[i][numeroRandom] == TEXT(" "))
+					if (pdata->arrayGame[i][numeroRandom] == TEXT(' '))
 					{
 						pdata->arrayGame[i][numeroRandom] = pdata->o.c;
 						break;
@@ -254,6 +258,7 @@ DWORD WINAPI EstadoTabuleiro(LPVOID param) { //inicializar esta thread para faze
 		LeaveCriticalSection(&pdata->a->x);
 		ResetEvent(hEventos[X]);
 	}
+
 }
 DWORD WINAPI LeComandosOperadoresThread(LPVOID param) {
 	ControlData* pdata = (LPVOID*)param;
@@ -468,6 +473,7 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 }
 DWORD WINAPI ThreadTempo(LPVOID param) {
 	Info* pdata = (Info*)param;
+	DWORD exit = 0;
 	DWORD z = 0;
 	HANDLE hEventos[2];
 	hEventos[0] = pdata->a->hEventoStopAll;
@@ -489,6 +495,7 @@ DWORD WINAPI ThreadTempo(LPVOID param) {
 			if (pdata->nivel->tempo == 0 && pdata->nivel->lvlActual == NIVEISDEJOGO) {
 				SetEvent(pdata->a->hEventoTerminouJogo);
 				pdata->end = 0;
+				exit = 1;
 				LeaveCriticalSection(&pdata->a->x);
 				break;
 			}
@@ -497,14 +504,17 @@ DWORD WINAPI ThreadTempo(LPVOID param) {
 				pdata->sapos[0].temp = pdata->nivel->tempo;
 				if (pdata->sapos[1].activo)
 					pdata->sapos[1].temp = pdata->nivel->tempo;
-				z = 2; SetEvent(pdata->a->hEventoTerminouTempo); LeaveCriticalSection(&pdata->a->x); break;
+				z = 2; 
+				LeaveCriticalSection(&pdata->a->x);
+				SetEvent(pdata->a->hEventoTerminouTempo);
+				break;
 			}
 			LeaveCriticalSection(&pdata->a->x);
 			_tprintf_s(TEXT("Nivel: %d  & Tempo: %d\n"), pdata->nivel->lvlActual, pdata->nivel->tempo / 1000);
 		} while (z == 1);
-		ResetEvent(pdata->a->hEventoTerminouTempo);
-	} while (1);
-	ExitProcess(-12);
+		//ResetEvent(pdata->a->hEventoTerminouTempo);
+	} while (exit == 0);
+	ExitProcess(0);
 }
 
 void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
@@ -613,8 +623,10 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	ControlaPipes cp;
 	cp.saposa = &sapos[0];
 	cp.saposb = &sapos[1];
+
 	DWORD flagEndAll = 0;
-	for (int i = 0; i < 1/*dados.faixa*/; i++) {
+
+	for (int i = 0; i <dados.faixa  ; i++) {
 		send[i].id = i;
 		send[i].nFaixaResp = dados.faixa - i - 1;
 		send[i].arrayGame = boardGameArray;

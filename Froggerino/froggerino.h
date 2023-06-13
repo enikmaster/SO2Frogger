@@ -1,4 +1,4 @@
-// froggerino.h - contém as declarações das funções partilhadas do frogger
+// froggerino.h  contém as declarações das funções partilhadas do frogger
 #pragma once
 
 #ifdef FROGGERINO_EXPORTS
@@ -32,7 +32,7 @@
 #define TERINOUTEMPO TEXT("TERMINOUTEMPO")
 #define VIDAS 3
 #define NIVEISDEJOGO 5
-#define TEMPO 25500
+#define TEMPO 25000
 
 FROGGERINO_API typedef enum {
 	CMD_PARAR,    // uma palavra + um inteiro > 0 && < total de faixas

@@ -18,6 +18,11 @@ typedef struct OBJECTO objs;
 typedef struct INFO Info;
 typedef struct _BUFFERCELL BufferCell;
 typedef struct _SHAREDMEM SharedMem;
+typedef struct SAPO SAPO;
+typedef struct Eventos_Mutexs Eventos_Mutexs;;
+typedef struct ControlaPipes ControlaPipes;
+typedef struct NIVEL Nivel;
+typedef struct _CONTROLDATA ControlData;
 
 HANDLE checkStart(); //verificar se programa tem condições de ser executado
 void checkArgs(int x, TCHAR** args, FaixaVelocity* dados); //verificar argumentos

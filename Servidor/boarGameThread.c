@@ -1,7 +1,8 @@
 #include "servidor.h"
 #include "..\Froggerino\froggerino.h"
-
+DWORD xG = 0;
 DWORD WINAPI ThreadsFaixa(LPVOID param) {
+	_tprintf_s(TEXT("[ID]: %d\n"), ++xG);
 	// TODO: Alterar o random
 	Info* pData = (Info*)param;
 	COORD pos = { 0,0 };
@@ -22,13 +23,13 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 		z = 0;
 		reset = FALSE;
 		start = TRUE;
-		/*
+		
 		DWORD random_num = rand() % (2+1);
 		if (pData->nivel->lvlActual > 1) {
 			if (random_num > 1)
 				pData->sentidoFaixa = FALSE;
 		}
-		*/
+		
 		nCarros = pData->nivel->nCarros;
 		EnterCriticalSection(&pData->a->x);
 		do {
@@ -79,9 +80,8 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 								{
 									if (pData->arrayGame[pData->nFaixaResp][i + 1] == pData->o.c)
 									{
-										n += 2;
+										n++;
 									}
-									i++;
 									continue;
 								}
 								
@@ -106,15 +106,11 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 									}
 
 									if (pData->arrayGame[pData->nFaixaResp][0] == pData->o.c || pData->arrayGame[pData->nFaixaResp][0] == pData->o.o) {
-										i++;
-										continue;
+										break;
 									}
 									pData->arrayGame[pData->nFaixaResp][i] = TEXT(' ');
 									pData->arrayGame[pData->nFaixaResp][0] = pData->o.c;
-									++n;
-									if (n == nCarros)
-										break;
-									continue;
+									break;
 								}
 								else
 								{
@@ -156,9 +152,8 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 								{
 									if (pData->arrayGame[pData->nFaixaResp][i - 1] == pData->o.c)
 									{
-										n += 2;
+										n++;
 									}
-									i--;
 									continue;
 								}
 								if (i == 0) {
@@ -181,7 +176,7 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 										}
 									}
 									if (pData->arrayGame[pData->nFaixaResp][COLUMNS-1] == pData->o.c || pData->arrayGame[pData->nFaixaResp][COLUMNS - 1] == pData->o.o) {
-										i--;
+										break;
 										continue;
 									}
 									pData->arrayGame[pData->nFaixaResp][i] = TEXT(' ');
@@ -189,7 +184,7 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 									++n;
 									if (n == nCarros)
 										break;
-									continue;
+									break;
 								}
 								else
 								{
@@ -260,7 +255,7 @@ DWORD WINAPI EstadoTabuleiro(LPVOID param) { //inicializar esta thread para faze
 	DWORD numeroRandom;
 	DWORD flag = 0;
 	DWORD noRepeat[6] = { -1,-1,-1,-1,-1,- 1 };
-	for (int i = pdata->numFaixasTotal - 1; i > 0; i--) {
+	for (int i = pdata->numFaixasTotal ; i > 0; i--) {
 		for (int j = 0; j < pdata->nivel->nCarros; j++) {
 			do {
 				 numeroRandom = rand() % (20);
@@ -282,16 +277,16 @@ DWORD WINAPI EstadoTabuleiro(LPVOID param) { //inicializar esta thread para faze
 		}
 		EnterCriticalSection(&pdata->a->x);
 		DWORD last_number = -1; 
-		for (int i = pdata->numFaixasTotal - 1; i > 0; i--) {
+		for (int i = pdata->numFaixasTotal ; i > 0; i--) {
 			for (int j = 0; j < COLUMNS; j++) {
 				pdata->arrayGame[i][j] = TEXT(' ');
 			}
 		}
 		
-		for (int i = pdata->numFaixasTotal - 1; i > 0; i--) {
+		for (int i = pdata->numFaixasTotal; i > 0; i--) {
 			for (int j = 0; j < pdata->nivel->nCarros; j++) {
 				do {
-					numeroRandom = rand() % (20);
+					numeroRandom = rand() % (18 - 2 + 1) + 2;
 					if (numeroRandom % 2 != 0 )
 						 numeroRandom += 1;
 					flag = 0;
@@ -300,15 +295,23 @@ DWORD WINAPI EstadoTabuleiro(LPVOID param) { //inicializar esta thread para faze
 							flag = -1;
 					if (flag == -1)
 						 continue;
-					if ((pdata->arrayGame[i][numeroRandom] == TEXT(' ')) && (pdata->arrayGame[i][numeroRandom + 1] == TEXT(' ')));
+					if((pdata->arrayGame[i][numeroRandom + 1] == TEXT(' ')))
 					{
-						pdata->arrayGame[i][numeroRandom] = TEXT('C');
-						noRepeat[j] = numeroRandom;
-						break;
+						if ((pdata->arrayGame[i][numeroRandom] == TEXT(' ')));
+						{
+							pdata->arrayGame[i][numeroRandom] = TEXT('C');
+							noRepeat[j] = numeroRandom;
+							break;
+						}
+						flag = -1;
 					}
+						
 				} while (flag = -1);
 			}
+			for (int l = 0; l < 6; l++)
+				noRepeat[l] = -1;
 		}
+	
 		ResetEvent(hEventos[X]);
 		SetEvent(pdata->a->hEventStart);
 		SetEvent(pdata->a->hEventoAtualiza);
@@ -578,7 +581,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 
 	TCHAR** boardGameArray = (TCHAR**)malloc(sizeof(TCHAR*) * dados.faixa);
 
-	for (int i = 0; i < dados.faixa; i++) {
+	for (int i = 0; i <= (dados.faixa + 2); i++) {
 		boardGameArray[i] = (TCHAR*)malloc(sizeof(TCHAR) * (COLUMNS + 1));
 		if (boardGameArray[i] == NULL) {
 			printf("Memory allocation failed.\n");
@@ -594,11 +597,22 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 			boardGameArray[i][COLUMNS] = '\0';
 			continue;
 		}
+		if (i == dados.faixa + 1 ) {
+			for (int j = 0; j < COLUMNS; j++) {
+				if (j % 3 == 0)
+					boardGameArray[i][j] = TEXT('S');
+				else
+					boardGameArray[i][j] = TEXT(' ');
+			}
+			boardGameArray[i][COLUMNS] = '\0';
+			break;
+		}
 		else
 			for (int j = 0; j < COLUMNS; j++)
 				boardGameArray[i][j] = TEXT(' ');
 		boardGameArray[i][COLUMNS] = '\0';
 	}
+	
 	//#############################################
 
 	if (boardGameArray == NULL) {
@@ -653,6 +667,8 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	}
 
 	//#############################################
+	pos aa; 
+	pos bb;
 	SAPO sapos[2];
 	Nivel niveis[5];
 	PreencheSapos(sapos, dados.faixa);
@@ -682,9 +698,9 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 
 	DWORD flagEndAll = 0;
 
-	for (int i = 0; i <2  ; i++) {
+	for (int i = 0; i < dados.faixa ; i++) {
 		send[i].id = i;
-		send[i].nFaixaResp = dados.faixa - i - 1;
+		send[i].nFaixaResp = dados.faixa - i;
 		send[i].arrayGame = boardGameArray;
 		send[i].o = o;
 		send[i].end = &flagEndAll;
@@ -777,12 +793,14 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 		WaitForSingleObject(allEventos.hEventoAtualiza, INFINITE);
 		WaitForSingleObject(hMutexArray, INFINITE);
 		EnterCriticalSection(&cs_);
-		for (int i = 0; i < dados.faixa; i++) {
+		for (int i = 0; i < dados.faixa + 2; i++) {
 			for (int j = 0; j < 20; j++) {
 				//_tprintf_s(TEXT(" %c "), boardGameArray[i][j]);
 				a.sharedMem->gameShared[i][j] = boardGameArray[i][j];
 			}
+			//_tprintf_s(TEXT("\n"));
 		}
+
 		LeaveCriticalSection(&cs_);
 		ReleaseMutex(hMutexArray);
 		SetEvent(a.hEvent);

@@ -2,7 +2,7 @@
 
 
 void showBG(TCHAR localBG[10][20], DWORD TamFaixa) {
-	for (int i = 0; i < TamFaixa; i++) {
+	for (int i = 0; i < TamFaixa + 2; i++) {
 		TCHAR lvl0[100] = TEXT("");
 		for (int j = 0; j < 20; j++) {
 			TCHAR temp[4];

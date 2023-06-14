@@ -82,7 +82,7 @@ BOOL initMemAndSync(ControlData* cData, Info* dados,DWORD x) {
 		CloseHandle(cData->hReadSem);
 		return FALSE;
 	}
-	for (int i = 0; i < x; i++)
+	for (int i = 0; i < x+2; i++)
 		for (int j = 0; j < 20; j++)
 			cData->sharedMem->gameShared[i][j] = dados->arrayGame[i][j];
 	cData->sharedMem->faixaMax = x;

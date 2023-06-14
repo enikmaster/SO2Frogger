@@ -53,16 +53,16 @@ Comando checkInput(TCHAR* msg, infoextra* info, DWORD* AltFaixa, DWORD maxFaixas
 	secondArgStr[second_arg_index] = TEXT('\0');
 	secondArg = _tstoi(secondArgStr);
 	firstarg[first_arg_index] = TEXT('\0');
-	if ((secondArg < 2 || secondArg > maxFaixas - 1) && count >= 1) {
+	if ((secondArg < 1 || secondArg > maxFaixas ) && count >= 1) {
 		return CMD_ERRO;
 	}
 	*AltFaixa = secondArg;
 	_tcsupr_s(firstarg, sizeof(firstarg) / sizeof(firstarg[0]));
-	if (wcscmp(firstarg, TEXT("PARAR")) == 0) {
+	if (wcscmp(firstarg, TEXT("PARAR")) == 0 && secondArg > 0) {
 		return CMD_PARAR;
 	}
 	else if (wcscmp(firstarg, TEXT("ADICIONAR")) == 0) {
-		if (secondArg < 2 || secondArg > maxFaixas - 1)
+		if (secondArg < 1 || secondArg > maxFaixas - 1)
 			return CMD_ERRO;
 		return CMD_ADICIONAR;
 	}

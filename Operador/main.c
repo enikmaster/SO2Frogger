@@ -121,7 +121,7 @@ int _tmain(int argc, TCHAR** argv) {
 				extra.controlingData.fechar = TRUE;
 				break;
 			case CMD_PAUSEALL:
-				_tprintf_s(TEXT("Você pediu para pause movimento de todas as faixas com sucesso!"));
+				_tprintf_s(TEXT("Você pediu para pausar o movimento de todas as faixas com sucesso!"));
 				infoToServer.f1 = 5;
 				valid = 1;
 				break;
@@ -140,14 +140,8 @@ int _tmain(int argc, TCHAR** argv) {
 			CopyMemory(&extra.controlingData.sharedMem->buffer[extra.controlingData.sharedMem->wP++], &infoToServer, sizeof(extra.controlingData.sharedMem->buffer));
 			if (extra.controlingData.sharedMem->wP == BUFFER_SIZE)
 				extra.controlingData.sharedMem->wP = 0;
-			if(!ReleaseMutex(extra.controlingData.hMutex)) {
-				_tprintf_s(TEXT("[ERRO] Mutex foi encerrado no servidor, a encerrar.\n"));
-				ExitProcess(-1);
-			};
-			if (!ReleaseSemaphore(extra.controlingData.hReadSem, 1, NULL)) {
-				_tprintf_s(TEXT("[ERRO] Semaphore foi encerrado no servidor, a encerrar.\n"));
-				ExitProcess(-1);
-			};
+			ReleaseMutex(extra.controlingData.hMutex);
+			ReleaseSemaphore(extra.controlingData.hReadSem, 1, NULL);
 		}
 		
 		count++;
@@ -156,10 +150,7 @@ int _tmain(int argc, TCHAR** argv) {
 		GetConsoleScreenBufferInfo(hStdout, &info);
 		DWORD numChars = info.dwSize.X - pos.X;
 		FillConsoleOutputCharacter(hStdout, TEXT(' '), numChars, start, &written);
-		if (!ReleaseMutex(extra.hMutex)) {
-			_tprintf_s(TEXT("[ERRO] Mutex local encerrado.\n"));
-			ExitProcess(-1);
-		};
+		ReleaseMutex(extra.hMutex);
 	}
 	if (flagt != -1) {
 		WaitForSingleObject(hThread, 5000);

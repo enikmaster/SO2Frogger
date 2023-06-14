@@ -38,9 +38,6 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 				DWORD X = WaitForMultipleObjects(3, hEventos, FALSE, pData->nivel->velocidade);
 				EnterCriticalSection(&pData->a->x);
 				if (X == WAIT_TIMEOUT) {
-					if (pData->allMoving == FALSE)
-						start = FALSE;
-					else
 						start = TRUE;
 				}
 				else if (X >= WAIT_OBJECT_0) {
@@ -228,14 +225,10 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 						WaitForSingleObject(pData->hEventPause, INFINITE);
 						ResetEvent(pData->hEventPause);
 					}
-					else if (!pData->moving && !pData->allMoving) {
-						WaitForSingleObject(pData->hEventPauseGlobal, 3000);
-						EnterCriticalSection(&pData->a->x);
+					else{
+						Sleep(3000);
 						pData->moving = TRUE;
 						pData->allMoving = TRUE;
-						LeaveCriticalSection(&pData->a->x);
-						ResetEvent(pData->hEventPauseGlobal);
-						
 					}
 				}
 
@@ -330,6 +323,7 @@ DWORD WINAPI LeComandosOperadoresThread(LPVOID param) {
 			pdata->sharedMem->rP = 0;
 		ReleaseSemaphore(pdata->hWriteSem, 1, NULL);
 		DWORD RANDOM;
+		EnterCriticalSection(&pdata->infoControl->a->x);
 		switch (infoToMake.f1)
 		{
 		case 1:
@@ -348,16 +342,16 @@ DWORD WINAPI LeComandosOperadoresThread(LPVOID param) {
 			}
 			break;
 		case 5:
-			for (int i = 0; i < pdata->sharedMem->faixaMax; i++) {
+			for (int i = 0; i <= pdata->sharedMem->faixaMax; i++) {
 				pdata->infoControl[i].moving = FALSE;
 				pdata->infoControl[i].allMoving = FALSE;
-				SetEvent(pdata->infoControl[i].hEventPauseGlobal);
 			}
 			break;
 		default:
 			break;
 		}
 		ReleaseMutex(pdata->hMutex);
+		LeaveCriticalSection(&pdata->infoControl->a->x);
 	}
 	return 0;
 }

@@ -29,10 +29,7 @@ void PreencheNiveis(Nivel* x, SAPO* sp) {
 	for (int i = 0; i < NIVEISDEJOGO; i++) {
 		x[i].lvlActual = i+1;
 		x[i].sentido = TRUE;
-		if (i == 0)
-			x[i].nCarros = 1;
-		else
-			x[i].nCarros = x[i-1].nCarros + 1;
+		x[i].nCarros = x[i].lvlActual + 1;
 		x[i].velocidade = 1100 - x[i].lvlActual * 100;
 		x[i].sapos = sp;
 		x[i].tempo = TEMPO - x[i].lvlActual * 1000;

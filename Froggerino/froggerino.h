@@ -25,7 +25,7 @@
 #define READING_STATE 1 
 #define WRITING_STATE 2 
 #define INSTANCES 2
-#define PIPE_TIMEOUT 5000
+#define PIPE_TIMEOUT 50000
 #define BUFSIZE 4096
 #define NSAPOS 2
 #define TERMINOUJOGO TEXT("TERMINOUJOGO")
@@ -113,6 +113,7 @@ FROGGERINO_API typedef struct
 
 FROGGERINO_API typedef struct Eventos_Mutexs {
 	HANDLE hEventoAtualiza; //sinaliza para atualizar tabuleiro
+	HANDLE hEventoEscreveSapos;
 	HANDLE hMutexArrayJogo;
 	HANDLE hEventStart; //Vai ser sinalizado apenas depois de se saber se são dois ou 1 sapo
 	HANDLE hStdout;
@@ -136,7 +137,12 @@ FROGGERINO_API typedef struct ControlaPipes {
 	PIPEINST* pipeMgm;
 	SAPO* saposa;
 	SAPO* saposb;
+	TCHAR chRequest[BUFSIZE];
+	DWORD cbRead;
+	TCHAR chReply[BUFSIZE];
+	DWORD cbToWrite;
 	Eventos_Mutexs* gere;
+	DWORD nFaixas;
 	HANDLE ThreadsParaSapo[INSTANCES];
 }ControlaPipes;
 FROGGERINO_API typedef struct INFO { // Informação completa sobre o jogo

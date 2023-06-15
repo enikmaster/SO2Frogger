@@ -24,7 +24,7 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 		reset = FALSE;
 		start = TRUE;
 		
-		DWORD random_num = rand() % (2+1);
+		DWORD random_num = rand() % (4+1);
 		if (pData->nivel->lvlActual > 1) {
 			if (random_num > 1)
 				pData->sentidoFaixa = FALSE;
@@ -75,15 +75,11 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 							if (pData->arrayGame[pData->nFaixaResp][i] == pData->o.c) {
 								if ((pData->arrayGame[pData->nFaixaResp][i + 1] == pData->o.o || pData->arrayGame[pData->nFaixaResp][i + 1] == pData->o.c))
 								{
-									if (pData->arrayGame[pData->nFaixaResp][i + 1] == pData->o.c)
-									{
-										n++;
-									}
 									continue;
 								}
 								
 								if (i == COLUMNS - 1) {
-									if (pData->arrayGame[pData->nFaixaResp][0] == pData->o.s) {
+									if (pData->arrayGame[pData->nFaixaResp][0] == TEXT("S")) {
 										if (!pData->sapos[1].activo) {
 											pData->sapos[0].vidas -= 1;
 											pData->sapos[0].pos_atual.X = pData->sapos[0].pos_inicial.X;
@@ -102,7 +98,7 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 										}
 									}
 
-									if (pData->arrayGame[pData->nFaixaResp][0] == pData->o.c || pData->arrayGame[pData->nFaixaResp][0] == pData->o.o) {
+									if (pData->arrayGame[pData->nFaixaResp][0] == pData->o.c || pData->arrayGame[pData->nFaixaResp][0] == pData->o.o) { 
 										break;
 									}
 									pData->arrayGame[pData->nFaixaResp][i] = TEXT(' ');
@@ -130,12 +126,7 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 										}
 									}
 									pData->arrayGame[pData->nFaixaResp][i] = TEXT(' ');
-									pData->arrayGame[pData->nFaixaResp][i + 1] = pData->o.c;
-									i++;
-									++n;
-									if (n == nCarros)
-										break;
-									continue;
+									pData->arrayGame[pData->nFaixaResp][++i] = pData->o.c;
 								}
 								
 							}
@@ -143,14 +134,10 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 
 					}
 					else {
-						for (i = COLUMNS - 1; i >= 0 || n < nCarros; i--) {
-							if (pData->arrayGame[pData->nFaixaResp][i] == pData->o.c) {
+						for (i = COLUMNS - 1; i >= 0; i--) {
+							if(pData->arrayGame[pData->nFaixaResp][i] == pData->o.c) {
 								if ((pData->arrayGame[pData->nFaixaResp][i -1] == pData->o.o || pData->arrayGame[pData->nFaixaResp][i -1] == pData->o.c))
 								{
-									if (pData->arrayGame[pData->nFaixaResp][i - 1] == pData->o.c)
-									{
-										n++;
-									}
 									continue;
 								}
 								if (i == 0) {
@@ -174,13 +161,9 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 									}
 									if (pData->arrayGame[pData->nFaixaResp][COLUMNS-1] == pData->o.c || pData->arrayGame[pData->nFaixaResp][COLUMNS - 1] == pData->o.o) {
 										break;
-										continue;
 									}
 									pData->arrayGame[pData->nFaixaResp][i] = TEXT(' ');
 									pData->arrayGame[pData->nFaixaResp][COLUMNS-1] = pData->o.c;
-									++n;
-									if (n == nCarros)
-										break;
 									break;
 								}
 								else
@@ -204,11 +187,7 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 										}
 									}
 									pData->arrayGame[pData->nFaixaResp][i] = TEXT(' ');
-									pData->arrayGame[pData->nFaixaResp][i - 1] = pData->o.c;
-									i--;
-									++n;
-									if (n == nCarros)
-										break;
+									pData->arrayGame[pData->nFaixaResp][--i] = pData->o.c;
 									continue;
 								}
 
@@ -217,6 +196,7 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 					}
 					LeaveCriticalSection(&pData->a->x);
 					SetEvent(pData->a->hEventoAtualiza);
+					SetEvent(pData->a->hEventoEscreveSapos);
 					
 				}
 				else {
@@ -308,6 +288,7 @@ DWORD WINAPI EstadoTabuleiro(LPVOID param) { //inicializar esta thread para faze
 		ResetEvent(hEventos[X]);
 		SetEvent(pdata->a->hEventStart);
 		SetEvent(pdata->a->hEventoAtualiza);
+		SetEvent(pdata->a->hEventoEscreveSapos);
 		LeaveCriticalSection(&pdata->a->x);
 	}
 
@@ -372,7 +353,7 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 	BOOL Sucesso;
 	OVERLAPPED ov;
 	DWORD x = 0, n, y;
-	HANDLE hEventoss[INSTANCES + 1];
+	HANDLE hEventoss[INSTANCES+2];
 	HANDLE hEvento = CreateEvent(
 		NULL,
 		TRUE,
@@ -427,7 +408,7 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 		pdata->pipeMgm[i].ligado = FALSE;
 		ZeroMemory(&pdata->pipeMgm[i].oOverlap, sizeof(OVERLAPPED));
 		pdata->pipeMgm[i].oOverlap.hEvent = pdata->pipeMgm[i].hEvent;
-		pdata->pipeMgm[i].zO = &ov;
+
 		if (!ConnectNamedPipe(pdata->pipeMgm[i].hPipeInst, &pdata->pipeMgm[i].oOverlap)) {
 			if (GetLastError() != ERROR_IO_PENDING) {
 				_tprintf_s(TEXT("Falhou a conexão ao pipe.\n"));
@@ -441,22 +422,29 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 		TRUE,
 		FALSE,
 		NULL);
-
-	hEventoss[INSTANCES - 1] = eventoFecha;
+	HANDLE hEventosMul[2];
+	hEventosMul[0] = pdata->pipeMgm[0].hEvent;
+	hEventosMul[1] = pdata->pipeMgm[1].hEvent;
+	hEventoss[3] = eventoFecha;
+	hEventoss[2] = pdata->gere->hEventoEscreveSapos;
+	DWORD flagg = 1;
 	while (1) {
 		for (y = 0, n = 0; y < INSTANCES; y++)
 			if (pdata->pipeMgm[y].hPipeInst != NULL)
 				hEventoss[n++] = pdata->pipeMgm[y].hEvent;
-		DWORD i = WaitForMultipleObjects(n, hEventoss, FALSE, INFINITE);
+		DWORD i = WaitForMultipleObjects(4, hEventoss, FALSE, INFINITE);
 		if (i >= WAIT_OBJECT_0) {
 			i -= WAIT_OBJECT_0;
 			// a testar
-			if (i == 2) {
+			if (i == 3) {
 				break;
 			}
-			pdata->pipeMgm[i].sucesso = GetOverlappedResult(pdata->pipeMgm[i].hPipeInst, &pdata->pipeMgm[i].oOverlap, &pdata->pipeMgm[i].cbRead, FALSE);
-
-			if (!pdata->pipeMgm[i].ligado) {
+			if (i == 2) {
+				flagg = 0;
+				i = 0;
+			}
+			GetOverlappedResult(pdata->pipeMgm[i].hPipeInst, &pdata->pipeMgm[i].oOverlap, &pdata->pipeMgm[i].cbRead, FALSE);
+			if (!pdata->pipeMgm[i].ligado ) {
 				if (i == 0) {
 					pdata->sapoAControlar = 0;
 				}
@@ -466,17 +454,57 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 				pdata->pipeMgm[i].ligado = TRUE;
 				ZeroMemory(&pdata->pipeMgm[i].oOverlap, sizeof(OVERLAPPED));
 				pdata->pipeMgm[i].oOverlap.hEvent = pdata->pipeMgm[i].hEvent;
-				pdata->pipeMgm[i].sucesso = ReadFile(pdata->pipeMgm[i].hPipeInst, pdata->pipeMgm[i].chRequest, BUFSIZE, &pdata->pipeMgm[i].cbRead, &pdata->pipeMgm[i].oOverlap);
+				ReadFile(pdata->pipeMgm[i].hPipeInst, pdata->pipeMgm[i].chRequest, BUFSIZE, &pdata->pipeMgm[i].cbRead, &pdata->pipeMgm[i].oOverlap);
+
 			}
 			else {
-				if (pdata->pipeMgm[i].cbRead > 0) {
-					ZeroMemory(&ov, sizeof(OVERLAPPED));
-					ov.hEvent = hEvento;
-					ResetEvent(hEvento);  
+				if (pdata->pipeMgm[i].cbRead > 0 && i!=2 && flagg == 1) {
+					CharUpperBuff(pdata->pipeMgm[i].chRequest, (DWORD)_tcslen(pdata->pipeMgm[i].chRequest));
+
+					for (x = 0; x < INSTANCES; x++)
+						if (pdata->pipeMgm[x].hPipeInst != NULL && pdata->pipeMgm[x].ligado) {
+							ZeroMemory(&ov, sizeof(OVERLAPPED));
+							ov.hEvent = hEvento;
+							ResetEvent(hEvento);
+				
+							Sucesso = WriteFile(pdata->pipeMgm[x].hPipeInst, pdata->pipeMgm[i].chRequest, (DWORD)(_tcslen(pdata->pipeMgm[i].chRequest) + 1) * sizeof(TCHAR), &pdata->pipeMgm[i].cbToWrite, &ov);
+							if (!Sucesso && GetLastError() == ERROR_IO_PENDING) {
+								WaitForSingleObject(hEvento, INFINITE);
+								GetOverlappedResult(pdata->pipeMgm[x].hPipeInst, &ov, &pdata->pipeMgm[i].cbRead, FALSE);
+							}
+						}
 					ZeroMemory(&pdata->pipeMgm[i].oOverlap, sizeof(OVERLAPPED));
 					pdata->pipeMgm[i].oOverlap.hEvent = pdata->pipeMgm[i].hEvent;
-					SetEvent(pdata->pipeMgm[i].hEventoThread);
-					pdata->pipeMgm[i].sucesso = ReadFile(pdata->pipeMgm[i].hPipeInst, pdata->pipeMgm[i].chRequest, BUFSIZE, &pdata->pipeMgm[i].cbRead, &pdata->pipeMgm[i].oOverlap);
+					ReadFile(pdata->pipeMgm[i].hPipeInst, pdata->pipeMgm[i].chRequest, BUFSIZE, &pdata->pipeMgm[i].cbRead, &pdata->pipeMgm[i].oOverlap);
+				}
+				else if (flagg == 0) {
+					EnterCriticalSection(&pdata->gere->x);
+					DWORD index = 0;
+					for (int y = 0; y < pdata->nFaixas +2; y++) {
+						for (int j = 0; j < COLUMNS; j++) {
+							pdata->chReply[index++] = pdata->GameBoard[y][j];
+						}
+					}
+					pdata->chReply[index] = '\0';
+					LeaveCriticalSection(&pdata->gere->x);
+					index = 0;
+					for (int i = 0; i < INSTANCES; i++) {
+						if (pdata->pipeMgm[i].hPipeInst != NULL && pdata->pipeMgm[i].ligado) {
+							ZeroMemory(&ov, sizeof(OVERLAPPED));
+							ov.hEvent = hEvento;
+							ResetEvent(hEvento);
+							Sucesso = WriteFile(pdata->pipeMgm[i].hPipeInst, pdata->chReply, (DWORD)(_tcslen(pdata->chReply) + 1) * sizeof(TCHAR), &pdata->cbToWrite, &ov);
+							if (!Sucesso && GetLastError() == ERROR_IO_PENDING) {
+								WaitForSingleObject(hEvento, INFINITE);
+								GetOverlappedResult(pdata->pipeMgm[i].hPipeInst, &ov, &pdata->pipeMgm[i].cbRead, FALSE);
+							}
+							ZeroMemory(&pdata->pipeMgm[i].oOverlap, sizeof(OVERLAPPED));
+							pdata->pipeMgm[i].oOverlap.hEvent = pdata->pipeMgm[i].hEvent;
+							ReadFile(pdata->pipeMgm[i].hPipeInst, pdata->pipeMgm[i].chRequest, BUFSIZE, &pdata->pipeMgm[i].cbRead, &pdata->pipeMgm[i].oOverlap);
+						}
+					}
+					flagg = 1;
+					ResetEvent(pdata->gere->hEventoEscreveSapos);
 				}
 				else {
 
@@ -512,11 +540,7 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 	SetEvent(pdata->gere->hEventStart);
 	while (1) {
 		WaitForSingleObject(pdata->pipeMgm[z].hEventoThread, INFINITE);
-		if(pdata->pipeMgm[z].cbRead >0)
-			_tprintf(TEXT("RECEBI: '%s' <- #%02d\n"), pdata->pipeMgm[z].chRequest, z);
-		ZeroMemory(&pdata->pipeMgm[z].oOverlap, sizeof(OVERLAPPED));
-		pdata->pipeMgm[z].oOverlap.hEvent =pdata->pipeMgm[z].hEvent;
-		ResetEvent(pdata->pipeMgm[z].hEventoThread);
+		SetEvent(pdata->pipeMgm[z].hEvent);
 	}
 
 	// Clean up and close the pipe handle
@@ -572,7 +596,10 @@ DWORD WINAPI ThreadTempo(LPVOID param) {
 }
 
 void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
-	objs o; o.c = TEXT('C'); o.o = TEXT('O'); o.s = TEXT('S');
+	objs o; 
+	o.c = TEXT('C'); 
+	o.o = TEXT('O'); 
+	o.s = TEXT('S');
 
 	TCHAR** boardGameArray = (TCHAR**)malloc(sizeof(TCHAR*) * dados.faixa);
 
@@ -651,6 +678,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	allEventos.hEventoAtualiza = CreateEvent(NULL, TRUE, FALSE, NULL);
 	allEventos.hMutexArrayJogo = hMutexArray;
 	allEventos.hEventStart = hEventStart;
+	allEventos.hEventoEscreveSapos = CreateEvent(NULL, TRUE, FALSE, NULL);
 	allEventos.hStdout = hStdout;
 	allEventos.hEventoTerminouJogo = CreateEvent(NULL, TRUE, FALSE, TERMINOUJOGO);
 	allEventos.hEventoTerminouTempo = CreateEvent(NULL, TRUE, FALSE, TERINOUTEMPO);
@@ -690,7 +718,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	ControlaPipes cp;
 	cp.saposa = &sapos[0];
 	cp.saposb = &sapos[1];
-
+	cp.nFaixas = dados.faixa;
 	DWORD flagEndAll = 0;
 
 	for (int i = 0; i < dados.faixa ; i++) {
@@ -790,10 +818,9 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 		EnterCriticalSection(&cs_);
 		for (int i = 0; i < dados.faixa + 2; i++) {
 			for (int j = 0; j < 20; j++) {
-				//_tprintf_s(TEXT(" %c "), boardGameArray[i][j]);
 				a.sharedMem->gameShared[i][j] = boardGameArray[i][j];
 			}
-			//_tprintf_s(TEXT("\n"));
+			
 		}
 
 		LeaveCriticalSection(&cs_);

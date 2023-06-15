@@ -96,6 +96,7 @@ FROGGERINO_API typedef struct NIVEL {
 FROGGERINO_API typedef struct
 {
 	OVERLAPPED oOverlap;
+	OVERLAPPED* zO;
 	HANDLE hPipeInst;
 	TCHAR chRequest[BUFSIZE];
 	DWORD cbRead;
@@ -104,6 +105,7 @@ FROGGERINO_API typedef struct
 	DWORD dwState;
 	BOOL fPendingIO;
 	BOOL ligado;
+	BOOL sucesso;
 	HANDLE hEvent;
 	HANDLE hEventoThread;
 } PIPEINST, * LPPIPEINST;

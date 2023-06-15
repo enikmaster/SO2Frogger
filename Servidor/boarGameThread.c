@@ -427,7 +427,7 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 		pdata->pipeMgm[i].ligado = FALSE;
 		ZeroMemory(&pdata->pipeMgm[i].oOverlap, sizeof(OVERLAPPED));
 		pdata->pipeMgm[i].oOverlap.hEvent = pdata->pipeMgm[i].hEvent;
-
+		pdata->pipeMgm[i].zO = &ov;
 		if (!ConnectNamedPipe(pdata->pipeMgm[i].hPipeInst, &pdata->pipeMgm[i].oOverlap)) {
 			if (GetLastError() != ERROR_IO_PENDING) {
 				_tprintf_s(TEXT("Falhou a conexão ao pipe.\n"));
@@ -454,7 +454,8 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 			if (i == 2) {
 				break;
 			}
-			GetOverlappedResult(pdata->pipeMgm[i].hPipeInst, &pdata->pipeMgm[i].oOverlap, &pdata->pipeMgm[i].cbRead, FALSE);
+			pdata->pipeMgm[i].sucesso = GetOverlappedResult(pdata->pipeMgm[i].hPipeInst, &pdata->pipeMgm[i].oOverlap, &pdata->pipeMgm[i].cbRead, FALSE);
+
 			if (!pdata->pipeMgm[i].ligado) {
 				if (i == 0) {
 					pdata->sapoAControlar = 0;
@@ -462,23 +463,20 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 				else
 					pdata->sapoAControlar = 1;
 				ResumeThread(pdata->ThreadsParaSapo[i]);
-				//aqui confirmava que entra
 				pdata->pipeMgm[i].ligado = TRUE;
 				ZeroMemory(&pdata->pipeMgm[i].oOverlap, sizeof(OVERLAPPED));
 				pdata->pipeMgm[i].oOverlap.hEvent = pdata->pipeMgm[i].hEvent;
-				ReadFile(pdata->pipeMgm[i].hPipeInst, pdata->pipeMgm[i].chRequest, BUFSIZE, &pdata->pipeMgm[i].cbRead, &pdata->pipeMgm[i].oOverlap);
-
+				pdata->pipeMgm[i].sucesso = ReadFile(pdata->pipeMgm[i].hPipeInst, pdata->pipeMgm[i].chRequest, BUFSIZE, &pdata->pipeMgm[i].cbRead, &pdata->pipeMgm[i].oOverlap);
 			}
 			else {
 				if (pdata->pipeMgm[i].cbRead > 0) {
 					ZeroMemory(&ov, sizeof(OVERLAPPED));
 					ov.hEvent = hEvento;
-					ResetEvent(hEvento);
-					SetEvent(pdata->pipeMgm[i].hEventoThread);
-					//Usar cs?     
+					ResetEvent(hEvento);  
 					ZeroMemory(&pdata->pipeMgm[i].oOverlap, sizeof(OVERLAPPED));
 					pdata->pipeMgm[i].oOverlap.hEvent = pdata->pipeMgm[i].hEvent;
-					ReadFile(pdata->pipeMgm[i].hPipeInst, pdata->pipeMgm[i].chRequest, BUFSIZE, &pdata->pipeMgm[i].cbRead, &pdata->pipeMgm[i].oOverlap);
+					SetEvent(pdata->pipeMgm[i].hEventoThread);
+					pdata->pipeMgm[i].sucesso = ReadFile(pdata->pipeMgm[i].hPipeInst, pdata->pipeMgm[i].chRequest, BUFSIZE, &pdata->pipeMgm[i].cbRead, &pdata->pipeMgm[i].oOverlap);
 				}
 				else {
 
@@ -514,7 +512,10 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 	SetEvent(pdata->gere->hEventStart);
 	while (1) {
 		WaitForSingleObject(pdata->pipeMgm[z].hEventoThread, INFINITE);
-		_tprintf(TEXT("RECEBI: '%s' <- #%02d\n"), pdata->pipeMgm[z].chRequest, z);
+		if(pdata->pipeMgm[z].cbRead >0)
+			_tprintf(TEXT("RECEBI: '%s' <- #%02d\n"), pdata->pipeMgm[z].chRequest, z);
+		ZeroMemory(&pdata->pipeMgm[z].oOverlap, sizeof(OVERLAPPED));
+		pdata->pipeMgm[z].oOverlap.hEvent =pdata->pipeMgm[z].hEvent;
 		ResetEvent(pdata->pipeMgm[z].hEventoThread);
 	}
 

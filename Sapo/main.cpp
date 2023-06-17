@@ -38,8 +38,9 @@ typedef struct LOCAL {
 	int pontuacao;
 	int numeroFaixas;
 	DWORD nBytesRead;
+	DWORD nBytesWriten;
 	TCHAR mensagem[BUFSIZE];
-	TCHAR mensagemaEnviar[BUFSIZE];
+	TCHAR mensagemaEnviar[2]; 
 	OBJETO objetos[200];
 	HANDLE hPipe;
 	HWND hWnd;
@@ -65,19 +66,19 @@ void ParseMessage(LOCAL* origenate) {
 		TCHAR* next_token = NULL;
 		//_tcscpy_s(local.mensagem, sizeof(local.mensagem), mensagem);
 		// extrai o nivel
-		TCHAR* token = _tcstok_s((TCHAR*)origenate->mensagem, TEXT("\0"), &next_token);
-		//local.nivel = _ttoi(token);
+		TCHAR* token = _tcstok_s((TCHAR*)origenate->mensagem, TEXT(" "), &next_token);
+		origenate->nivel = _ttoi(token);
 		// extrai as vidas
-		//token = _tcstok_s(NULL, TEXT(" "), &next_token);
-		//local.vidas = _ttoi(token);
+		token = _tcstok_s(NULL, TEXT(" "), &next_token);
+		origenate->vidas = _ttoi(token);
 		// extrai o tempo
-		//token = _tcstok_s(NULL, TEXT(" "), &next_token);
-		//local.tempo = _ttoi(token);
+		token = _tcstok_s(NULL, TEXT(" "), &next_token);
+		origenate->tempo = _ttoi(token);
 		// extrai a pontuação
-		//token = _tcstok_s(NULL, TEXT(" "), &next_token);
-		//local.pontuacao = _ttoi(token);
+		token = _tcstok_s(NULL, TEXT(" "), &next_token);
+		origenate->pontuacao = _ttoi(token);
 
-		//token = _tcstok_s(NULL, TEXT("\0"), &next_token);
+		token = _tcstok_s(NULL, TEXT("\0"), &next_token);
 		origenate->numeroFaixas = 10;
 		// criar os objetos da estrutura LOCAL a partir da mensagem recebida
 		for (int y = 0; y < origenate->numeroFaixas; ++y) {
@@ -134,7 +135,35 @@ DWORD WINAPI lerMessages(LPVOID param) {
 	} while (x.nBytesRead > 0);   // NPipe foi encerrado pela thread inicial...
 	ExitThread(0);
 }
+DWORD WINAPI enviaComandos(LPVOID param) {
+		LOCAL* origem = (LOCAL*)param;
+		HANDLE hPipe = origem->hPipe;
+		BOOL res;
+		LOCAL x;
+		OVERLAPPED ov;
 
+		HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+		if (hEvent == NULL) {
+			_tprintf_s(TEXT("Erro na criação do evento\n"));
+			ExitProcess(-1);
+		}
+		do {
+			ZeroMemory(&ov, sizeof(ov));
+			ov.hEvent = hEvent;
+			WaitForSingleObject(origem->hEventoEnviaMensagem, INFINITE);
+			res = WriteFile(hPipe, origem->mensagemaEnviar, (DWORD)(_tcslen(origem->mensagemaEnviar) + 1) * sizeof(TCHAR), &origem->nBytesWriten, &ov);
+			if (res)
+				;
+			else if (GetLastError() == ERROR_IO_PENDING) {
+				WaitForSingleObject(hEvent, INFINITE);
+				GetOverlappedResult(hPipe, &ov, &origem->nBytesWriten, FALSE);
+			}
+			else
+				break;
+
+		} while (origem->nBytesWriten > 0);   // NPipe foi encerrado pela thread inicial...
+		ExitThread(0);
+}
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow) {
 	HANDLE hPipe;	// hPipe é o handler do pipe
 	TCHAR szMessage[MAX_MESSAGE_SIZE];
@@ -222,7 +251,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		return FALSE; // Se não for bem sucedido, termina o programa
 	local.hWnd = hWnd;
 	SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)&local);
-	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)lerMessages, (LPVOID)&local, 0, NULL); //Thread recebe MARAVILHA
+	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)lerMessages, (LPVOID)&local, 0, NULL); 
+	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)enviaComandos, (LPVOID)&local, 0, NULL);
 	//CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)enviaMensagens, (LPVOID)&local, 0, NULL); //Thread Mensagem	string direita ou esquerda ou cima ou baixo
 	// ============================================================================
 	// 4. Mostra a janela

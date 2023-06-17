@@ -31,8 +31,8 @@
 #define TERMINOUJOGO TEXT("TERMINOUJOGO")
 #define TERINOUTEMPO TEXT("TERMINOUTEMPO")
 #define VIDAS 3
-#define NIVEISDEJOGO 5
-#define TEMPO 25000
+#define NIVEISDEJOGO 10
+#define TEMPO 60000
 
 FROGGERINO_API typedef enum {
     CMD_PARAR,    // uma palavra + um inteiro > 0 && < total de faixas
@@ -77,6 +77,8 @@ FROGGERINO_API typedef struct OBJECTO { // objetos do tabuleiro
 FROGGERINO_API typedef struct SAPO {
     BOOL activo;
     BOOL move;
+    BOOL directionCOLUMN;
+    BOOL directionROW;
     unsigned int vidas;
     unsigned int temp;
     unsigned int score;
@@ -96,7 +98,6 @@ FROGGERINO_API typedef struct NIVEL {
 FROGGERINO_API typedef struct
 {
     OVERLAPPED oOverlap;
-    OVERLAPPED* zO;
     HANDLE hPipeInst;
     TCHAR chRequest[BUFSIZE];
     DWORD cbRead;
@@ -106,7 +107,10 @@ FROGGERINO_API typedef struct
     BOOL fPendingIO;
     BOOL ligado;
     BOOL sucesso;
+    BOOL pausado;
+    BOOL send;
     HANDLE hEvent;
+    HANDLE hEventDiff;
     HANDLE hEventoThread;
 } PIPEINST, * LPPIPEINST;
 
@@ -122,6 +126,7 @@ FROGGERINO_API typedef struct Eventos_Mutexs {
     HANDLE hEventoStopAll; //Encerrar tudo
     HANDLE hEventoRestartGame; //Reiniciar jogo
     HANDLE hEventoPausaJogo; //Pausa jogo
+    HANDLE hEventoResumegame;
     CRITICAL_SECTION x;
 }Eventos_Mutexs;
 FROGGERINO_API typedef struct _SHAREDMEM { // memória partilhada
@@ -144,8 +149,11 @@ FROGGERINO_API typedef struct ControlaPipes {
     TCHAR chReply[BUFSIZE];
     DWORD cbToWrite;
     BOOL singlePlayer;
+    BOOL multiPlayer;
     Eventos_Mutexs* gere;
+    Nivel* nivel;
     DWORD nFaixas;
+    DWORD nJogadores;
     HANDLE ThreadsParaSapo[INSTANCES];
 }ControlaPipes;
 FROGGERINO_API typedef struct INFO { // Informação completa sobre o jogo

@@ -217,11 +217,11 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		(HWND)HWND_DESKTOP,		// Janela-pai
 		(HMENU)NULL,			// Menu
 		(HINSTANCE)hInst,		// Instância
-		&local);				// Dados de criação
+		NULL);				// Dados de criação
 	if (!hWnd)
 		return FALSE; // Se não for bem sucedido, termina o programa
 	local.hWnd = hWnd;
-
+	SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)&local);
 	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)lerMessages, (LPVOID)&local, 0, NULL); //Thread recebe MARAVILHA
 	//CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)enviaMensagens, (LPVOID)&local, 0, NULL); //Thread Mensagem	string direita ou esquerda ou cima ou baixo
 	// ============================================================================
@@ -248,7 +248,10 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	HDC hdc;
 	PAINTSTRUCT ps;
 	RECT rect;
-	LOCAL* pLocal = (LOCAL*)lParam;
+	LOCAL* pLocal = NULL;
+
+	// Retrieve the address of the 'local' variable associated with the window handle
+	pLocal = (LOCAL*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 	
 	// TODO: fazer as vidas, pontos, tempo e nivel do jogo
 	// o tempo é uma barra de progresso que desenha 1 elemento de cada vez

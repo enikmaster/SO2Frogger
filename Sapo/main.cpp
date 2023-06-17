@@ -20,7 +20,7 @@
 #define SAPO TEXT('S')
 #define CARRO TEXT('C')
 #define OBSTACULO TEXT('O')
-#define DESLOCAMENTO 34
+#define DESLOCAMENTO 36
 
 // estrutura com os dados de um objeto do tabuleiro
 typedef struct OBJETO {
@@ -379,13 +379,13 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			for (int i = 0; i < pLocal->numeroFaixas * 20; ++i) {
 				switch (pLocal->objetos[i].tipo) {
 				case CARRO:
-					BitBlt(hdc, pLocal->objetos[i].posicaoX * DESLOCAMENTO, pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpCarro.bmWidth, bmpCarro.bmHeight, bmpDCCarro, 0, 0, SRCCOPY);
+					BitBlt(hdc,xBackground + pLocal->objetos[i].posicaoX * DESLOCAMENTO, yBackground + pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpCarro.bmWidth, bmpCarro.bmHeight, bmpDCCarro, 0, 0, SRCCOPY);
 					break;
 				case SAPO:
-					BitBlt(hdc, pLocal->objetos[i].posicaoX * DESLOCAMENTO, pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpSapo.bmWidth, bmpSapo.bmHeight, bmpDCSapo, 0, 0, SRCCOPY);
+					BitBlt(hdc, xBackground + pLocal->objetos[i].posicaoX * DESLOCAMENTO, yBackground + pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpSapo.bmWidth, bmpSapo.bmHeight, bmpDCSapo, 0, 0, SRCCOPY);
 					break;
 				case OBSTACULO:
-					BitBlt(hdc, pLocal->objetos[i].posicaoX * DESLOCAMENTO, pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpObstaculo.bmWidth, bmpObstaculo.bmHeight, bmpDCObstaculo, 0, 0, SRCCOPY);
+					BitBlt(hdc, xBackground + pLocal->objetos[i].posicaoX * DESLOCAMENTO, yBackground + pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpObstaculo.bmWidth, bmpObstaculo.bmHeight, bmpDCObstaculo, 0, 0, SRCCOPY);
 					break;
 				default:
 					break;

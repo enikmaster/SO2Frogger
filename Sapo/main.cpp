@@ -1,3 +1,4 @@
+//#pragma comment( lib, "Msimg32" )
 #include <windows.h>
 #include <tchar.h>
 //#include <math.h>
@@ -6,27 +7,179 @@
 //#include <io.h>
 #include <windowsx.h>
 
+
+//#define PIPE_NAME TEXT("\\\\.\\pipe\\SapoPipe")
+#define PIPE_NAME TEXT("\\\\.\\pipe\\canal")
+#define MAX_MESSAGE_SIZE 1024
 #define IDM_SINGLE_PLAYER 1001
 #define IDM_MULTI_PLAYER 1002
 #define IDM_ABOUT 1003
 #define IDM_EXIT 1004
+#define BUFSIZE 4096
+
+#define SAPO TEXT('S')
+#define CARRO TEXT('C')
+#define OBSTACULO TEXT('O')
+#define DESLOCAMENTO 34
+
+// estrutura com os dados de um objeto do tabuleiro
+typedef struct OBJETO {
+	int posicaoX;
+	int posicaoY;
+	TCHAR tipo;
+};
+// estrutura de dados locais do jogo
+typedef struct LOCAL {
+	int nivel;
+	int vidas;
+	int tempo;
+	int pontuacao;
+	int numeroFaixas;
+	DWORD nBytesRead;
+	TCHAR mensagem[BUFSIZE];
+	TCHAR mensagemaEnviar[BUFSIZE];
+	OBJETO objetos[200];
+	HANDLE hPipe;
+	HWND hWnd;
+	CRITICAL_SECTION cs;
+	HANDLE hEventoEnviaMensagem;
+};
 
 LRESULT CALLBACK TrataEventos(HWND, UINT, WPARAM, LPARAM);
 
-TCHAR szProgName[] = TEXT("Sapo");
+void ParseMessage(LOCAL* origenate) {
+
+	
+
+	if (wcslen(origenate->mensagem) == 0) {
+		// mensagem vazia, encerrou o servidor
+		return;
+	}
+	if (wcslen(origenate->mensagem) < 30) {
+		// mensagem com informações complementares ao jogo (terminou, ganhou, encerrou)
+	}
+	else {
+		// extrair a informação da mensagem com strtok
+		// nivel vidas tempo pontuação wwwwwwwwwwwwwwwwwwwwc c c c c c c c c c ...\0
+		// copia a mensagem para a estrutura LOCAL
+		TCHAR* next_token = NULL;
+		//_tcscpy_s(local.mensagem, sizeof(local.mensagem), mensagem);
+		// extrai o nivel
+		TCHAR* token = _tcstok_s((TCHAR*)origenate->mensagem, TEXT("\0"), &next_token);
+		//local.nivel = _ttoi(token);
+		// extrai as vidas
+		//token = _tcstok_s(NULL, TEXT(" "), &next_token);
+		//local.vidas = _ttoi(token);
+		// extrai o tempo
+		//token = _tcstok_s(NULL, TEXT(" "), &next_token);
+		//local.tempo = _ttoi(token);
+		// extrai a pontuação
+		//token = _tcstok_s(NULL, TEXT(" "), &next_token);
+		//local.pontuacao = _ttoi(token);
+
+		//token = _tcstok_s(NULL, TEXT("\0"), &next_token);
+		origenate->numeroFaixas = 10;
+		// criar os objetos da estrutura LOCAL a partir da mensagem recebida
+		for (int y = 0; y < origenate->numeroFaixas; ++y) {
+			for (int x = 0; x < 20; ++x) {
+				origenate->objetos[20 * y + x].posicaoX = x;
+				origenate->objetos[20 * y + x].posicaoY = y;
+				origenate->objetos[20 * y + x].tipo = token[20 * y + x];
+			}
+		}
+	}
+	return;
+}
+// função para ler a mensagens do named pipe
+DWORD WINAPI lerMessages(LPVOID param) {
+	LOCAL* origem = (LOCAL*)param;
+	HANDLE hPipe = origem->hPipe;
+	BOOL res;
+	LOCAL x;
+	OVERLAPPED ov;
+
+	HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	if (hEvent == NULL) {
+		_tprintf_s(TEXT("Erro na criação do evento\n"));
+		ExitProcess(-1);
+	}
+	do {
+		ZeroMemory(&x, sizeof(x));
+		ZeroMemory(&ov, sizeof(ov));
+		ov.hEvent = hEvent;
+		res = ReadFile(hPipe, x.mensagem, BUFSIZE, &x.nBytesRead, &ov);
+		if (res)
+			;
+		else if (GetLastError() == ERROR_IO_PENDING) {
+			//vai esperar que o evento seja sinalizado em overlapped
+			WaitForSingleObject(hEvent, INFINITE);
+			GetOverlappedResult(hPipe, &ov, &x.nBytesRead, FALSE);
+		}
+		else
+			break;
+		if (x.nBytesRead > 0) {
+			
+			//x = ParseMessage(x.mensagem);
+			EnterCriticalSection(&origem->cs);
+			wcscpy_s(origem->mensagem, x.mensagem);
+			origem->nBytesRead = x.nBytesRead;
+			ParseMessage(origem);
+			LeaveCriticalSection(&origem->cs);
+			InvalidateRect(origem->hWnd, // handle da janela
+				NULL, // retangulo a atualizar (NULL = toda a janela)
+				TRUE); // força a atualização da janela
+		}
+
+
+	} while (x.nBytesRead > 0);   // NPipe foi encerrado pela thread inicial...
+	ExitThread(0);
+}
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow) {
+	HANDLE hPipe;	// hPipe é o handler do pipe
+	TCHAR szMessage[MAX_MESSAGE_SIZE];
+	DWORD bytesRead;
 	HWND hWnd;		// hWnd é o handler da janela, gerado mais abaixo por CreateWindow()
 	MSG lpMsg;		// MSG é uma estrutura definida no Windows para as mensagens
 	WNDCLASSEX wcApp;	// WNDCLASSEX é uma estrutura cujos membros servem para definir as características da classe da janela
 
+	hPipe = CreateFile(
+		PIPE_NAME,
+		GENERIC_READ | GENERIC_WRITE,
+		0,
+		NULL,
+		OPEN_EXISTING,
+		FILE_FLAG_OVERLAPPED,
+		NULL);
+	if (hPipe == INVALID_HANDLE_VALUE) {
+		MessageBox(NULL, TEXT("Erro na abertura do pipe"), TEXT("Erro"), MB_OK);
+		ExitProcess(-1);
+	}
+	ConnectNamedPipe(hPipe, NULL);
+	if (!WaitNamedPipe(PIPE_NAME, 100)) {
+		MessageBox(NULL, TEXT("Erro na conexão do pipe"), TEXT("Erro"), MB_OK);
+		ExitProcess(-1);
+	}
+	
+	
+	LOCAL local;
+	local.hPipe = hPipe;
+	local.cs;
+
+	InitializeCriticalSection(&local.cs);
+	local.hEventoEnviaMensagem = CreateEvent(NULL, TRUE, FALSE, NULL);
+	if (local.hEventoEnviaMensagem == NULL) {
+		_tprintf_s(TEXT("Erro na criação do evento (%d)\n"), GetLastError());
+		ExitProcess(-1);
+	}
+	
 	// ============================================================================
 	// 1. Definição das características da janela "wcApp" 
 	//    (Valores dos elementos da estrutura "wcApp" do tipo WNDCLASSEX)
 	// ============================================================================
 	wcApp.cbSize = sizeof(WNDCLASSEX);      // Tamanho da estrutura WNDCLASSEX
 	wcApp.hInstance = hInst;		        // Instância da janela actualmente exibida ("hInst" é parâmetro de WinMain e vem inicializada daí)
-	wcApp.lpszClassName = szProgName;       // Nome da janela (neste caso = nome do programa)
+	wcApp.lpszClassName = TEXT("Sapo");       // Nome da janela (neste caso = nome do programa)
 	wcApp.lpfnWndProc = TrataEventos;       // Endereço da função de processamento da janela ("TrataEventos" foi declarada no início e encontra-se mais abaixo)
 	wcApp.style = CS_HREDRAW | CS_VREDRAW;  // Estilo da janela: Fazer o redraw se for modificada horizontal ou verticalmente
 
@@ -54,7 +207,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	// 3. Criação da janela
 	// ============================================================================
 	hWnd = CreateWindow(
-		szProgName,				// Nome da janela
+		TEXT("Sapo"),				// Nome da janela
 		TEXT("Sapo"),			// Título da janela
 		WS_OVERLAPPEDWINDOW,	// Estilo da janela
 		250,					// Posição x default
@@ -64,11 +217,13 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		(HWND)HWND_DESKTOP,		// Janela-pai
 		(HMENU)NULL,			// Menu
 		(HINSTANCE)hInst,		// Instância
-		0);						// Dados de criação
-
+		&local);				// Dados de criação
 	if (!hWnd)
 		return FALSE; // Se não for bem sucedido, termina o programa
+	local.hWnd = hWnd;
 
+	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)lerMessages, (LPVOID)&local, 0, NULL); //Thread recebe MARAVILHA
+	//CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)enviaMensagens, (LPVOID)&local, 0, NULL); //Thread Mensagem	string direita ou esquerda ou cima ou baixo
 	// ============================================================================
 	// 4. Mostra a janela
 	// ============================================================================
@@ -78,10 +233,14 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	// ============================================================================
 	// 5. Processamento de mensagens
 	// ============================================================================
-	while (GetMessage(&lpMsg, NULL, 0, 0)) { // Processa as mensagens
+	while (GetMessage( &lpMsg, NULL, 0, 0))	{ // Processa as mensagens
 		TranslateMessage(&lpMsg);	// Pré-processamento das mensagens
 		DispatchMessage(&lpMsg);	// Envia as mensagens
 	}
+	// fecha o pipe
+	CloseHandle(hPipe);
+	ExitThread(0);
+
 	return (int)lpMsg.wParam;		// Devolve o parâmetro "wParam" da estrutura "lpMsg"
 }
 
@@ -89,6 +248,10 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	HDC hdc;
 	PAINTSTRUCT ps;
 	RECT rect;
+	LOCAL* pLocal = (LOCAL*)lParam;
+	
+	// TODO: fazer as vidas, pontos, tempo e nivel do jogo
+	// o tempo é uma barra de progresso que desenha 1 elemento de cada vez
 
 	static HDC bmpDCBackground = NULL;
 	static HDC bmpDCSapo = NULL;
@@ -109,9 +272,8 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	static int xSapo, ySapo;
 	static int xCarro, yCarro;
 	static int xObstaculo, yObstaculo;
-
+	
 	static HANDLE hMutex;
-
 	switch (messg) {
 	case WM_CREATE:
 	{// criar um menu com opções de single player e multiplayer
@@ -207,18 +369,31 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
 		GetClientRect(hWnd, &rect);
-		FillRect(hdc, &rect, CreateSolidBrush(RGB(55, 55, 55)));
+		FillRect(hdc, &rect, CreateSolidBrush(RGB(0, 0, 0)));
+		
 		BitBlt(hdc, xBackground, yBackground, bmpBackground.bmWidth, bmpBackground.bmHeight, bmpDCBackground, 0, 0, SRCCOPY);
-		for (int i = 0; i < 20; i++) {
-			BitBlt(hdc, xObstaculo, yObstaculo, bmpObstaculo.bmWidth, bmpObstaculo.bmHeight, bmpDCObstaculo, 0, 0, SRCCOPY);
-			xObstaculo += (bmpObstaculo.bmWidth + 4);
+		if (pLocal != nullptr) {
+			for (int i = 0; i < pLocal->numeroFaixas * 20; ++i) {
+				switch (pLocal->objetos[i].tipo) {
+				case CARRO:
+					BitBlt(hdc, pLocal->objetos[i].posicaoX * DESLOCAMENTO, pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpCarro.bmWidth, bmpCarro.bmHeight, bmpDCCarro, 0, 0, SRCCOPY);
+					break;
+				case SAPO:
+					BitBlt(hdc, pLocal->objetos[i].posicaoX * DESLOCAMENTO, pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpSapo.bmWidth, bmpSapo.bmHeight, bmpDCSapo, 0, 0, SRCCOPY);
+					break;
+				case OBSTACULO:
+					BitBlt(hdc, pLocal->objetos[i].posicaoX * DESLOCAMENTO, pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpObstaculo.bmWidth, bmpObstaculo.bmHeight, bmpDCObstaculo, 0, 0, SRCCOPY);
+					break;
+				default:
+					break;
+				}
+			}
 		}
-		BitBlt(hdc, xCarro, yCarro, bmpCarro.bmWidth, bmpCarro.bmHeight, bmpDCCarro, 0, 0, SRCCOPY);
-		BitBlt(hdc, xSapo, ySapo, bmpSapo.bmWidth, bmpSapo.bmHeight, bmpDCSapo, 0, 0, SRCCOPY);
 
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_SIZE:
+		// obter o tamanho da janela
 		GetClientRect(hWnd, &rect);
 		// alterar a posição do bitmap do background
 		xBackground = (rect.right - rect.left - bmpBackground.bmWidth) / 2;
@@ -238,6 +413,22 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		switch (LOWORD(wParam)) {
 			// caso a opção "Single player" do menu "Novo jogo" seja selecionada
 		case IDM_SINGLE_PLAYER:
+			/*
+			// ler a informação da struct comum com os dados do jogo
+			//WaitForSingleObject(hMutex, INFINITE);
+			// obter o tamanho da janela
+			GetClientRect(hWnd, &rect);
+			// alterar a posição do bitmap do background para o colocar numa posição inicial no centro da janela
+			xBackground = (rect.right - rect.left - bmpBackground.bmWidth) / 2;
+			yBackground = (rect.bottom - rect.top - bmpBackground.bmHeight) / 2;
+			// por cada obstaculo que existir na struct comum alterar a posição do bitmap do obstaculo em relação ao background
+			for (int i = 0; i < 20; i++) {
+				xObstaculo = xBackground + 4;
+				yObstaculo = yBackground + bmpObstaculo.bmHeight + 2;
+				xObstaculo += (bmpObstaculo.bmWidth + 4) * i;
+			}
+			*/
+			//SetEvento(local.hEvento);
 			MessageBox(hWnd, TEXT("Single Player selecionado"), TEXT("Confirmação"), MB_OK | MB_ICONERROR);
 			break;
 		case IDM_MULTI_PLAYER:
@@ -252,6 +443,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			break;
 		}
 		break;
+		
 	case WM_CLOSE:
 		if (MessageBox(hWnd, TEXT("Deseja mesmo sair?"), TEXT("Sair"), MB_YESNO | MB_ICONQUESTION) == IDYES)
 			DestroyWindow(hWnd);
@@ -264,3 +456,6 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	}
 	return 0;
 }
+
+
+

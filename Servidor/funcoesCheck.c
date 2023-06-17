@@ -156,7 +156,7 @@ void setDadosEstrutura(FaixaVelocity* dados) {
 			return;
 		}
 	}
-		dados->faixa = 10;
+		dados->faixa = 8;
 		dados->velocity = 1;
 		ResultKey = RegSetValueEx(
 			temp,

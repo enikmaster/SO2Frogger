@@ -15,6 +15,8 @@
 #define IDM_MULTI_PLAYER 1002
 #define IDM_ABOUT 1003
 #define IDM_EXIT 1004
+#define IDM_COR_LIGHT 1005
+#define IDM_COR_DARK 1006
 #define BUFSIZE 4096
 
 #define SAPO TEXT('S')
@@ -43,14 +45,12 @@ typedef struct LOCAL {
 	HWND hWnd;
 	CRITICAL_SECTION cs;
 	HANDLE hEventoEnviaMensagem;
+	DWORD jumpSucesso;
 };
 
 LRESULT CALLBACK TrataEventos(HWND, UINT, WPARAM, LPARAM);
 
 void ParseMessage(LOCAL* origenate) {
-
-	
-
 	if (wcslen(origenate->mensagem) == 0) {
 		// mensagem vazia, encerrou o servidor
 		return;
@@ -252,6 +252,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 
 	// Retrieve the address of the 'local' variable associated with the window handle
 	pLocal = (LOCAL*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+	static int theme = 1;
 	
 	// TODO: fazer as vidas, pontos, tempo e nivel do jogo
 	// o tempo é uma barra de progresso que desenha 1 elemento de cada vez
@@ -260,21 +261,37 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	static HDC bmpDCSapo = NULL;
 	static HDC bmpDCCarro = NULL;
 	static HDC bmpDCObstaculo = NULL;
+	static HDC bmpDCBannerTempo = NULL;
+	static HDC bmpDCBarraTempo = NULL;
+	static HDC bmpDCVidas = NULL;
+	static HDC bmpDCTitulo = NULL;
 
 	static HBITMAP hBmpBackground = NULL;
 	static HBITMAP hBmpSapo = NULL;
 	static HBITMAP hBmpCarro = NULL;
 	static HBITMAP hBmpObstaculo = NULL;
+	static HBITMAP hBmpBannerTempo = NULL;
+	static HBITMAP hBmpBarraTempo = NULL;
+	static HBITMAP hBmpVidas = NULL;
+	static HBITMAP hBmpTitulo = NULL;
 
 	static BITMAP bmpBackground;
 	static BITMAP bmpSapo;
 	static BITMAP bmpCarro;
 	static BITMAP bmpObstaculo;
+	static BITMAP bmpBannerTempo;
+	static BITMAP bmpBarraTempo;
+	static BITMAP bmpVidas;
+	static BITMAP bmpTitulo;
 
 	static int xBackground, yBackground;
 	static int xSapo, ySapo;
 	static int xCarro, yCarro;
 	static int xObstaculo, yObstaculo;
+	static int xBannerTempo, yBannerTempo;
+	static int xBarraTempo, yBarraTempo;
+	static int xVidas, yVidas;
+	static int xTitulo, yTitulo;
 	
 	static HANDLE hMutex;
 	switch (messg) {
@@ -287,6 +304,12 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		AppendMenu(hSubMenu, MF_STRING, IDM_MULTI_PLAYER, TEXT("Multiplayer"));
 		AppendMenu(hSubMenu, MF_STRING, IDM_EXIT, TEXT("Exit"));
 		AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hSubMenu, TEXT("Jogo"));
+		SetMenu(hWnd, hMenu);
+		// criar um menu Opções com opções de cor
+		hSubMenu = CreatePopupMenu();
+		AppendMenu(hSubMenu, MF_STRING, IDM_COR_LIGHT, TEXT("Escuro"));
+		AppendMenu(hSubMenu, MF_STRING, IDM_COR_DARK, TEXT("Claro"));
+		AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hSubMenu, TEXT("Opções"));
 		SetMenu(hWnd, hMenu);
 		// criar um menu About que abra uma janela com informação sobre o jogo
 		hSubMenu = CreatePopupMenu();
@@ -316,11 +339,35 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		MessageBox(hWnd, TEXT("Não foi possível carregar o bitmap do sapo!"), TEXT("Erro"), MB_OK | MB_ICONERROR);
 		return -1;
 	}
+	hBmpBannerTempo = (HBITMAP)LoadImage(NULL, TEXT("tempo.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	if (hBmpBannerTempo == NULL) {
+		MessageBox(hWnd, TEXT("Não foi possível carregar o bitmap do banner do tempo!"), TEXT("Erro"), MB_OK | MB_ICONERROR);
+		return -1;
+	}
+	hBmpBarraTempo = (HBITMAP)LoadImage(NULL, TEXT("timer.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	if (hBmpBarraTempo == NULL) {
+		MessageBox(hWnd, TEXT("Não foi possível carregar o bitmap da barra do tempo!"), TEXT("Erro"), MB_OK | MB_ICONERROR);
+		return -1;
+	}
+	hBmpVidas = (HBITMAP)LoadImage(NULL, TEXT("vida.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	if (hBmpVidas == NULL) {
+		MessageBox(hWnd, TEXT("Não foi possível carregar o bitmap das vidas!"), TEXT("Erro"), MB_OK | MB_ICONERROR);
+		return -1;
+	}
+	hBmpTitulo = (HBITMAP)LoadImage(NULL, TEXT("title.bmp"), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	if (hBmpTitulo == NULL) {
+		MessageBox(hWnd, TEXT("Não foi possível carregar o bitmap do titulo!"), TEXT("Erro"), MB_OK | MB_ICONERROR);
+		return -1;
+	}
 	// obter os tamanhos dos diferentes bitmaps
 	GetObject(hBmpBackground, sizeof(BITMAP), &bmpBackground);
 	GetObject(hBmpObstaculo, sizeof(BITMAP), &bmpObstaculo);
 	GetObject(hBmpCarro, sizeof(BITMAP), &bmpCarro);
 	GetObject(hBmpSapo, sizeof(BITMAP), &bmpSapo);
+	GetObject(hBmpBannerTempo, sizeof(BITMAP), &bmpBannerTempo);
+	GetObject(hBmpBarraTempo, sizeof(BITMAP), &bmpBarraTempo);
+	GetObject(hBmpVidas, sizeof(BITMAP), &bmpVidas);
+	GetObject(hBmpTitulo, sizeof(BITMAP), &bmpTitulo);
 	// criar o mutex
 	hMutex = CreateMutex(NULL, FALSE, NULL);
 	// ########################################### Background ###########################################
@@ -365,6 +412,48 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	// calcular a posição do bitmap do sapo em relação ao background
 	xSapo = xBackground + 4;
 	ySapo = bmpBackground.bmHeight - bmpSapo.bmHeight - 2;
+	// ########################################### Banner Tempo ###########################################
+	// criar o DC do bitmap do banner do tempo
+	bmpDCBannerTempo = CreateCompatibleDC(hdc);
+	// selecionar o bitmap do banner do tempo no DC
+	SelectObject(bmpDCBannerTempo, hBmpBannerTempo);
+	// obter o tamanho da janela
+	GetClientRect(hWnd, &rect);
+	// calcular a posição do bitmap do banner do tempo em relação ao background
+
+	// TODO: alterar a posição do banner do tempo
+	xBannerTempo = xBackground + bmpBackground.bmWidth - bmpBannerTempo.bmWidth;
+	yBannerTempo = yBackground + bmpBackground.bmHeight;
+	// ########################################### Barra Tempo ###########################################
+	// criar o DC do bitmap da barra do tempo
+	bmpDCBarraTempo = CreateCompatibleDC(hdc);
+	// selecionar o bitmap da barra do tempo no DC
+	SelectObject(bmpDCBarraTempo, hBmpBarraTempo);
+	// obter o tamanho da janela
+	GetClientRect(hWnd, &rect);
+	// calcular a posição do bitmap da barra do tempo em relação ao banner do tempo
+	xBarraTempo = xBannerTempo - 4;
+	yBarraTempo = yBannerTempo;
+	// ########################################### Vidas ###########################################
+	// criar o DC do bitmap das vidas
+	bmpDCVidas = CreateCompatibleDC(hdc);
+	// selecionar o bitmap das vidas no DC
+	SelectObject(bmpDCVidas, hBmpVidas);
+	// obter o tamanho da janela
+	GetClientRect(hWnd, &rect);
+	// calcular a posição do bitmap das vidas em relação ao banner do tempo
+	xVidas = xBackground;
+	yVidas = yBackground + bmpBackground.bmHeight;
+	// ########################################### Titulo ###########################################
+	// criar o DC do bitmap do titulo
+	bmpDCTitulo = CreateCompatibleDC(hdc);
+	// selecionar o bitmap do titulo no DC
+	SelectObject(bmpDCTitulo, hBmpTitulo);
+	// obter o tamanho da janela
+	GetClientRect(hWnd, &rect);
+	// calcular a posição do bitmap do titulo em relação ao background
+	xTitulo = xBackground;
+	yTitulo = yBackground - bmpTitulo.bmHeight;
 	// libertar o DC
 	ReleaseDC(hWnd, hdc);
 
@@ -373,24 +462,60 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		hdc = BeginPaint(hWnd, &ps);
 		GetClientRect(hWnd, &rect);
 		FillRect(hdc, &rect, CreateSolidBrush(RGB(0, 0, 0)));
-		
-		BitBlt(hdc, xBackground, yBackground, bmpBackground.bmWidth, bmpBackground.bmHeight, bmpDCBackground, 0, 0, SRCCOPY);
-		if (pLocal != nullptr) {
-			for (int i = 0; i < pLocal->numeroFaixas * 20; ++i) {
-				switch (pLocal->objetos[i].tipo) {
-				case CARRO:
-					BitBlt(hdc,xBackground + pLocal->objetos[i].posicaoX * DESLOCAMENTO, yBackground + pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpCarro.bmWidth, bmpCarro.bmHeight, bmpDCCarro, 0, 0, SRCCOPY);
-					break;
-				case SAPO:
-					BitBlt(hdc, xBackground + pLocal->objetos[i].posicaoX * DESLOCAMENTO, yBackground + pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpSapo.bmWidth, bmpSapo.bmHeight, bmpDCSapo, 0, 0, SRCCOPY);
-					break;
-				case OBSTACULO:
-					BitBlt(hdc, xBackground + pLocal->objetos[i].posicaoX * DESLOCAMENTO, yBackground + pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpObstaculo.bmWidth, bmpObstaculo.bmHeight, bmpDCObstaculo, 0, 0, SRCCOPY);
-					break;
-				default:
-					break;
+
+		switch (theme) {
+		case 2: {
+			BitBlt(hdc, xTitulo, yTitulo, bmpTitulo.bmWidth, bmpTitulo.bmHeight, bmpDCTitulo, 0, 0, SRCCOPY);
+			BitBlt(hdc, xBackground, yBackground, bmpBackground.bmWidth, bmpBackground.bmHeight, bmpDCBackground, 0, 0, SRCCOPY);
+			if (pLocal != nullptr) {
+				for (int i = 0; i < pLocal->numeroFaixas * 20; ++i) {
+					switch (pLocal->objetos[i].tipo) {
+					case CARRO:
+						BitBlt(hdc, xBackground + pLocal->objetos[i].posicaoX * DESLOCAMENTO, yBackground + pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpCarro.bmWidth, bmpCarro.bmHeight, bmpDCCarro, 0, 0, SRCCOPY);
+						break;
+					case SAPO:
+						BitBlt(hdc, xBackground + pLocal->objetos[i].posicaoX * DESLOCAMENTO, yBackground + pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpSapo.bmWidth, bmpSapo.bmHeight, bmpDCSapo, 0, 0, SRCCOPY);
+						break;
+					case OBSTACULO:
+						BitBlt(hdc, xBackground + pLocal->objetos[i].posicaoX * DESLOCAMENTO, yBackground + pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpObstaculo.bmWidth, bmpObstaculo.bmHeight, bmpDCObstaculo, 0, 0, SRCCOPY);
+						break;
+					default:
+						break;
+					}
 				}
 			}
+			for (int i = 0; i < pLocal->vidas; i++)
+				BitBlt(hdc, i * xVidas, yVidas, bmpVidas.bmWidth, bmpVidas.bmHeight, bmpDCVidas, 0, 0, SRCCOPY);
+			BitBlt(hdc, xBannerTempo, yBannerTempo, bmpBannerTempo.bmWidth, bmpBannerTempo.bmHeight, bmpDCBannerTempo, 0, 0, SRCCOPY);
+			for (int i = 0; i < pLocal->tempo; i++)
+				BitBlt(hdc, xBarraTempo - i * bmpBarraTempo.bmWidth, yBarraTempo, bmpBarraTempo.bmWidth, bmpBarraTempo.bmHeight, bmpDCBarraTempo, 0, 0, SRCCOPY);
+		} break;
+		case 1: {
+			BitBlt(hdc, xTitulo, yTitulo, bmpTitulo.bmWidth, bmpTitulo.bmHeight, bmpDCTitulo, 0, 0, SRCINVERT);
+			BitBlt(hdc, xBackground, yBackground, bmpBackground.bmWidth, bmpBackground.bmHeight, bmpDCBackground, 0, 0, SRCINVERT);
+			if (pLocal != nullptr) {
+				for (int i = 0; i < pLocal->numeroFaixas * 20; ++i) {
+					switch (pLocal->objetos[i].tipo) {
+					case CARRO:
+						BitBlt(hdc, xBackground + pLocal->objetos[i].posicaoX * DESLOCAMENTO, yBackground + pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpCarro.bmWidth, bmpCarro.bmHeight, bmpDCCarro, 0, 0, SRCINVERT);
+						break;
+					case SAPO:
+						BitBlt(hdc, xBackground + pLocal->objetos[i].posicaoX * DESLOCAMENTO, yBackground + pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpSapo.bmWidth, bmpSapo.bmHeight, bmpDCSapo, 0, 0, SRCINVERT);
+						break;
+					case OBSTACULO:
+						BitBlt(hdc, xBackground + pLocal->objetos[i].posicaoX * DESLOCAMENTO, yBackground + pLocal->objetos[i].posicaoY * DESLOCAMENTO, bmpObstaculo.bmWidth, bmpObstaculo.bmHeight, bmpDCObstaculo, 0, 0, SRCINVERT);
+						break;
+					default:
+						break;
+					}
+				}
+			}
+			for (int i = 0; i < pLocal->vidas; i++)
+				BitBlt(hdc, i * xVidas, yVidas, bmpVidas.bmWidth, bmpVidas.bmHeight, bmpDCVidas, 0, 0, SRCINVERT);
+			BitBlt(hdc, xBannerTempo, yBannerTempo, bmpBannerTempo.bmWidth, bmpBannerTempo.bmHeight, bmpDCBannerTempo, 0, 0, SRCINVERT);
+			for (int i = 0; i < pLocal->tempo; i++)
+				BitBlt(hdc, xBarraTempo - i * bmpBarraTempo.bmWidth, yBarraTempo, bmpBarraTempo.bmWidth, bmpBarraTempo.bmHeight, bmpDCBarraTempo, 0, 0, SRCINVERT);
+		}
 		}
 
 		EndPaint(hWnd, &ps);
@@ -410,6 +535,18 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		// alterar a posição do bitmap do sapo em relação ao background
 		xSapo = xBackground + 4;
 		ySapo = yBackground + bmpBackground.bmHeight - bmpSapo.bmHeight;
+		// alterar a posição do bitmap do titulo em relação ao background
+		xTitulo = xBackground;
+		yTitulo = yBackground - bmpTitulo.bmHeight;
+		// alterar a posição do bitmap das vidas em relação ao background
+		xVidas = xBackground;
+		yVidas = yBackground + bmpBackground.bmHeight;
+		// alterar a posição do bitmap do banner do tempo em relação ao background
+		xBannerTempo = xBackground + bmpBackground.bmWidth - bmpBannerTempo.bmWidth;
+		yBannerTempo = yBackground + bmpBackground.bmHeight;
+		// alterar a posição do bitmap da barra do tempo em relação ao background
+		xBarraTempo = xBackground + bmpBackground.bmWidth - bmpBarraTempo.bmWidth;
+		yBarraTempo = yBackground + bmpBackground.bmHeight + bmpBannerTempo.bmHeight;
 
 		break;
 	case WM_COMMAND:
@@ -443,6 +580,12 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			break;
 		case IDM_ABOUT:
 			MessageBox(hWnd, TEXT("Trabalho elaborado por Lourenço McBride e Filipe Carvalho"), TEXT("Sobre"), MB_OK | MB_ICONINFORMATION);
+			break;
+		case IDM_COR_LIGHT:
+			theme = 2;
+			break;
+		case IDM_COR_DARK:
+			theme = 1;
 			break;
 		}
 		break;

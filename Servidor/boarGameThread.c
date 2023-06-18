@@ -659,7 +659,9 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 							pdata->singlePlayer = FALSE;
 							pdata->multiPlayer = TRUE;
 							pdata->nJogadores += 1;
-							SetEvent(pdata->gere->hEventStart);
+							if(pdata->nJogadores > 1)
+								SetEvent(pdata->gere->hEventStart);
+							break;
 						}
 						else {
 							pdata->pipeMgm[z].ligado = TRUE;
@@ -750,7 +752,6 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 					}
 				}
 				Sleep(30);
-				//SetEvent(pdata->gere->hEventoEscreveSapos); //avisa que é para enviar ao tabuleiro nova informacoes
 				LeaveCriticalSection(&pdata->gere->x);
 			};
 		}

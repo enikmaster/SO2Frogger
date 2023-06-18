@@ -200,14 +200,14 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		FILE_FLAG_OVERLAPPED,
 		NULL);
 	if (hPipe == INVALID_HANDLE_VALUE) {
-		MessageBox(NULL, TEXT("Erro na abertura do pipe"), TEXT("Erro"), MB_OK);
+		DWORD errorCode = GetLastError();
+		TCHAR errorMessage[256];
+		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errorCode, 0, errorMessage, 256, NULL);
+		MessageBox(NULL, errorMessage, TEXT("Erro na abertura do pipe"), MB_OK);
 		ExitProcess(-1);
 	}
 	ConnectNamedPipe(hPipe, NULL);
-	if (!WaitNamedPipe(PIPE_NAME, 100)) {
-		MessageBox(NULL, TEXT("Erro na conexão do pipe"), TEXT("Erro"), MB_OK);
-		ExitProcess(-1);
-	}
+	WaitNamedPipe(PIPE_NAME, NMPWAIT_USE_DEFAULT_WAIT);
 	
 	
 	LOCAL local;

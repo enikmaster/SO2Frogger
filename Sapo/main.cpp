@@ -152,37 +152,6 @@ DWORD WINAPI lerMessages(LPVOID param) {
 
 	return 0;
 }
-/*
-DWORD WINAPI enviaComandos(LPVOID param) {
-		LOCAL* origem = (LOCAL*)param;
-		HANDLE hPipe = origem->hPipe;
-		BOOL res;
-		LOCAL x;
-		OVERLAPPED ov;
-
-		HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-		if (hEvent == NULL) {
-			_tprintf_s(TEXT("Erro na criação do evento\n"));
-			ExitProcess(-1);
-		}
-		do {
-			ZeroMemory(&ov, sizeof(ov));
-			ov.hEvent = hEvent;
-			WaitForSingleObject(origem->hEventoEnviaMensagem, INFINITE);
-			res = WriteFile(hPipe, origem->mensagemaEnviar, (DWORD)(_tcslen(origem->mensagemaEnviar) + 1) * sizeof(TCHAR), &origem->nBytesWriten, &ov);
-			if (res)
-				;
-			else if (GetLastError() == ERROR_IO_PENDING) {
-				WaitForSingleObject(hEvent, INFINITE);
-				GetOverlappedResult(hPipe, &ov, &origem->nBytesWriten, FALSE);
-			}
-			else
-				break;
-			res  = ReadFile(hPipe, origem->mensagem, BUFSIZE, &origem->nBytesRead, &ov);
-			ResetEvent(origem->hEventoEnviaMensagem);
-		} while (origem->nBytesWriten > 0);   // NPipe foi encerrado pela thread inicial...
-		ExitThread(0);
-} */
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow) {
 	HANDLE hPipe;	// hPipe é o handler do pipe
 	TCHAR szMessage[MAX_MESSAGE_SIZE];

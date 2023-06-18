@@ -118,13 +118,11 @@ DWORD WINAPI lerMessages(LPVOID param) {
 		DWORD dwWaitResult = WaitForMultipleObjects(2, hEventos, FALSE, INFINITE);
 		if (dwWaitResult == WAIT_OBJECT_0) // Pipe is ready to read
 		{
-			ReadFile(hPipe, x.mensagem, BUFSIZE, &x.nBytesRead, NULL);
+			ReadFile(hPipe, origem->mensagem, BUFSIZE, &origem->nBytesRead, NULL);
 			if (x.nBytesRead > 0) {
-
+				ResetEvent(hEventos[0]);
 				//x = ParseMessage(x.mensagem);
 				EnterCriticalSection(&origem->cs);
-				wcscpy_s(origem->mensagem, x.mensagem);
-				origem->nBytesRead = x.nBytesRead;
 				ParseMessage(origem);
 				LeaveCriticalSection(&origem->cs);
 				InvalidateRect(origem->hWnd, // handle da janela
@@ -278,6 +276,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	// ============================================================================
 	// 4. Mostra a janela
 	// ============================================================================
+	SetFocus(hWnd);
 	ShowWindow(hWnd, nCmdShow); // Mostra a janela
 	UpdateWindow(hWnd);			// Desenha a janela
 
@@ -736,7 +735,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			if(!pLocal->playing) {
 				pLocal->playing = TRUE;
 				wcscpy_s(pLocal->mensagemaEnviar, SINGLEPLAYEROPT);
-				SetEvent(pLocal->hEventoEnviaMensagem);
+				WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);
 			}
 
 			break;
@@ -759,7 +758,8 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		}
 		break;
 	case WM_KEYDOWN:
-		switch (wParam) {
+		tecla = (TCHAR)wParam;
+		switch (tecla) {
 		case VK_UP:
 			// verificar se é possivel andar nesta direção
 			// não esquecer CriticalSection
@@ -768,8 +768,8 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			if (pLocal->myY != 0 && pLocal->objetos[20 * pLocal->myY + pLocal->myX - 20].tipo == SAPO)
 				break;
 			wcscpy_s(pLocal->mensagemaEnviar, MOVE_UP);
-			SetEvent(pLocal->hEventoEnviaMensagem);
-			ExitThread(1);
+			WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);;
+
 			break;
 		case VK_DOWN:
 			if (pLocal->myY == 0 || pLocal->myY == pLocal->numeroFaixas)
@@ -777,7 +777,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			if (pLocal->myY != pLocal->numeroFaixas && pLocal->objetos[20 * pLocal->myY + pLocal->myX + 20].tipo == SAPO)
 				break;
 			wcscpy_s(pLocal->mensagemaEnviar, MOVE_DOWN);
-			SetEvent(pLocal->hEventoEnviaMensagem);
+			WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);
 			break;
 		case VK_RIGHT:
 			if (pLocal->myY == 0)
@@ -785,15 +785,13 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			if(pLocal->myX == NUMERO_COLUNAS-1 || pLocal->objetos[20 * pLocal->myY + pLocal->myX + 1].tipo == SAPO)
 				break;
 			wcscpy_s(pLocal->mensagemaEnviar, MOVE_RIGHT);
-			SetEvent(pLocal->hEventoEnviaMensagem);
+			WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);
 			break;
 		case VK_LEFT:
-			if (pLocal->myY == 0)
-				break;
-			if (pLocal->myX == 0 || pLocal->objetos[20 * pLocal->myY + pLocal->myX - 1].tipo == SAPO)
+			if (pLocal->myY == 0 || pLocal->myX == 0 || pLocal->objetos[20 * pLocal->myY + pLocal->myX - 1].tipo == SAPO)
 				break;
 			wcscpy_s(pLocal->mensagemaEnviar, MOVE_LEFT);
-			SetEvent(pLocal->hEventoEnviaMensagem);
+			WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);
 			break;
 		}
 		break;

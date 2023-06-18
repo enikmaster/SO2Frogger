@@ -623,7 +623,6 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 		else
 		{
 			X = WaitForSingleObject(pdata->pipeMgm[z].hEventoThread, 10000);
-			_tprintf_s(TEXT("Foi do time out\n"));
 		}
 		ResetEvent(pdata->pipeMgm[z].hEventoThread);
 		if (X == WAIT_TIMEOUT) {
@@ -642,7 +641,6 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 				infoFormacao = _ttoi(buf);
 				LposX = sapoAcontrolar->pos_atual.X;
 				LposY = sapoAcontrolar->pos_atual.Y;
-				_tprintf(TEXT("Chegou cá, e tem o valor: %d\n"), infoFormacao);
 				switch (infoFormacao)
 				{
 					case 0:

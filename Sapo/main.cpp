@@ -417,7 +417,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 					}
 				}
 				for (int i = 0; i < pLocal->vidas; i++)
-					BitBlt(hdc, i * xVidas, yVidas, bmpVidas.bmWidth, bmpVidas.bmHeight, bmpDCVidas, 0, 0, SRCCOPY);
+					BitBlt(hdc, i * bmpVidas.bmWidth + xVidas, yVidas, bmpVidas.bmWidth, bmpVidas.bmHeight, bmpDCVidas, 0, 0, SRCCOPY);
 				for (int i = 0; i < pLocal->tempo; i++)
 					BitBlt(hdc, xBarraTempo - i * bmpBarraTempo.bmWidth, yBarraTempo, bmpBarraTempo.bmWidth, bmpBarraTempo.bmHeight, bmpDCBarraTempo, 0, 0, SRCCOPY);
 			}
@@ -443,7 +443,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 					}
 				}
 				for (int i = 0; i < pLocal->vidas; i++)
-					BitBlt(hdc, i * xVidasL, yVidasL, bmpVidasL.bmWidth, bmpVidasL.bmHeight, bmpDCVidasL, 0, 0, SRCCOPY);
+					BitBlt(hdc, i * bmpVidas.bmWidth + xVidasL, yVidasL, bmpVidasL.bmWidth, bmpVidasL.bmHeight, bmpDCVidasL, 0, 0, SRCCOPY);
 				for (int i = 0; i < pLocal->tempo; i++)
 					BitBlt(hdc, xBarraTempoL - i * bmpBarraTempoL.bmWidth, yBarraTempoL, bmpBarraTempoL.bmWidth, bmpBarraTempoL.bmHeight, bmpDCBarraTempoL, 0, 0, SRCCOPY);
 			}

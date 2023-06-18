@@ -24,7 +24,6 @@ int _tmain(int argc, TCHAR** argv) {
 		_tprintf_s(TEXT("[ERRO] Error"));
 		ExitProcess(-1);
 	}
-	_tprintf_s(TEXT("Operador"));
 
 	HANDLE MutexShared = CreateMutex(NULL, FALSE, TEXT("MUTEXLOCAL"));
 	if (MutexShared == NULL) {

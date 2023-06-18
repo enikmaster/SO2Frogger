@@ -42,7 +42,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		_tprintf_s(TEXT("Erro na criação do evento (%d)\n"), GetLastError());
 		ExitProcess(-1);
 	}
-	
 	// ============================================================================
 	// 1. Definição das características da janela "wcApp" 
 	//    (Valores dos elementos da estrutura "wcApp" do tipo WNDCLASSEX)
@@ -122,13 +121,9 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	RECT rect;
 	LOCAL* pLocal = NULL;
 	TCHAR tecla;
-	
 	// Retrieve the address of the 'local' variable associated with the window handle
 	pLocal = (LOCAL*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 	static int theme = 1; // 1 = Dark, 2 = Light
-	
-	// TODO: fazer as vidas, pontos, tempo e nivel do jogo
-	// o tempo é uma barra de progresso que desenha 1 elemento de cada vez
 
 	static HDC bmpDCBackground = NULL, bmpDCBackgroundL = NULL;
 	static HDC bmpDCSapo = NULL, bmpDCSapoL = NULL;
@@ -292,173 +287,106 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	GetObject(hBmpVidasL, sizeof(BITMAP), &bmpVidasL);
 	GetObject(hBmpTitulo, sizeof(BITMAP), &bmpTitulo);
 	GetObject(hBmpTituloL, sizeof(BITMAP), &bmpTituloL);
-	// criar o mutex
+	
 	hMutex = CreateMutex(NULL, FALSE, NULL);
 	// ########################################### Background Dark ###########################################
-	// criar o DC do bitmap do background
 	hdc = GetDC(hWnd);
-	// criar o DC do bitmap do background
 	bmpDCBackground = CreateCompatibleDC(hdc);
-	// selecionar o bitmap do background no DC
 	SelectObject(bmpDCBackground, hBmpBackground);
-	// obter o tamanho da janela
 	GetClientRect(hWnd, &rect);
-	// calcular a posição do bitmap do background
 	xBackground = 0;
 	yBackground = rect.bottom - bmpBackground.bmHeight;
 	// ########################################### Background Light ###########################################
-	// criar o DC do bitmap do background
 	hdc = GetDC(hWnd);
-	// criar o DC do bitmap do background
 	bmpDCBackgroundL = CreateCompatibleDC(hdc);
-	// selecionar o bitmap do background no DC
 	SelectObject(bmpDCBackgroundL, hBmpBackgroundL);
-	// obter o tamanho da janela
 	GetClientRect(hWnd, &rect);
-	// calcular a posição do bitmap do background
 	xBackgroundL = 0;
 	yBackgroundL = rect.bottom - bmpBackgroundL.bmHeight;
 	// ########################################### Obstaculo Dark ###########################################
-	// criar o DC do bitmap do obstaculo
 	bmpDCObstaculo = CreateCompatibleDC(hdc);
-	// selecionar o bitmap do obstaculo no DC
 	SelectObject(bmpDCObstaculo, hBmpObstaculo);
-	// obter o tamanho da janela
 	GetClientRect(hWnd, &rect);
-	// calcular a posição do bitmap do obstaculo no fundo da janela
 	xObstaculo = 0;
 	yObstaculo = 4 + bmpObstaculo.bmHeight;
 	// ########################################### Obstaculo Light ###########################################
-	// criar o DC do bitmap do obstaculo
 	bmpDCObstaculoL = CreateCompatibleDC(hdc);
-	// selecionar o bitmap do obstaculo no DC
 	SelectObject(bmpDCObstaculoL, hBmpObstaculoL);
-	// obter o tamanho da janela
 	GetClientRect(hWnd, &rect);
-	// calcular a posição do bitmap do obstaculo no fundo da janela
 	xObstaculoL = 0;
 	yObstaculoL = 4 + bmpObstaculoL.bmHeight;
 	// ########################################### Carro ###########################################
-	// criar o DC do bitmap do carro
 	bmpDCCarro = CreateCompatibleDC(hdc);
-	// selecionar o bitmap do carro no DC
 	SelectObject(bmpDCCarro, hBmpCarro);
-	// obter o tamanho da janela
 	GetClientRect(hWnd, &rect);
-	// calcular a posição do bitmap do carro no fundo da janela
 	xCarro = 0;
 	yCarro = 50;
 	// ########################################### Carro Light ###########################################
-	// criar o DC do bitmap do carro
 	bmpDCCarroL = CreateCompatibleDC(hdc);
-	// selecionar o bitmap do carro no DC
 	SelectObject(bmpDCCarroL, hBmpCarroL);
-	// obter o tamanho da janela
 	GetClientRect(hWnd, &rect);
-	// calcular a posição do bitmap do carro no fundo da janela
 	xCarroL = 0;
 	yCarroL = 50;
 	// ########################################### Sapo ###########################################
-	// criar o DC do bitmap do sapo
 	bmpDCSapo = CreateCompatibleDC(hdc);
-	// selecionar o bitmap do sapo no DC
 	SelectObject(bmpDCSapo, hBmpSapo);
-	// obter o tamanho da janela
 	GetClientRect(hWnd, &rect);
-	// calcular a posição do bitmap do sapo em relação ao background
 	xSapo = xBackground + 4;
 	ySapo = bmpBackground.bmHeight - bmpSapo.bmHeight - 2;
 	// ########################################### Sapo Light ###########################################
-	// criar o DC do bitmap do sapo
 	bmpDCSapoL = CreateCompatibleDC(hdc);
-	// selecionar o bitmap do sapo no DC
 	SelectObject(bmpDCSapoL, hBmpSapoL);
-	// obter o tamanho da janela
 	GetClientRect(hWnd, &rect);
-	// calcular a posição do bitmap do sapo em relação ao background
 	xSapoL = xBackgroundL + 4;
 	ySapoL = bmpBackgroundL.bmHeight - bmpSapoL.bmHeight - 2;
 	// ########################################### Banner Tempo ###########################################
-	// criar o DC do bitmap do banner do tempo
 	bmpDCBannerTempo = CreateCompatibleDC(hdc);
-	// selecionar o bitmap do banner do tempo no DC
 	SelectObject(bmpDCBannerTempo, hBmpBannerTempo);
-	// obter o tamanho da janela
 	GetClientRect(hWnd, &rect);
-	// calcular a posição do bitmap do banner do tempo em relação ao background
 	xBannerTempo = xBackground + bmpBackground.bmWidth - bmpBannerTempo.bmWidth;
 	yBannerTempo = yBackground + bmpBackground.bmHeight;
 	// ########################################### Banner Tempo Light ###########################################
-	// criar o DC do bitmap do banner do tempo
 	bmpDCBannerTempoL = CreateCompatibleDC(hdc);
-	// selecionar o bitmap do banner do tempo no DC
 	SelectObject(bmpDCBannerTempoL, hBmpBannerTempoL);
-	// obter o tamanho da janela
 	GetClientRect(hWnd, &rect);
-	// calcular a posição do bitmap do banner do tempo em relação ao background
 	xBannerTempoL = xBackgroundL + bmpBackgroundL.bmWidth - bmpBannerTempoL.bmWidth;
 	yBannerTempoL = yBackgroundL + bmpBackgroundL.bmHeight;
 	// ########################################### Barra Tempo ###########################################
-	// criar o DC do bitmap da barra do tempo
 	bmpDCBarraTempo = CreateCompatibleDC(hdc);
-	// selecionar o bitmap da barra do tempo no DC
 	SelectObject(bmpDCBarraTempo, hBmpBarraTempo);
-	// obter o tamanho da janela
 	GetClientRect(hWnd, &rect);
-	// calcular a posição do bitmap da barra do tempo em relação ao banner do tempo
 	xBarraTempo = xBannerTempo - 4;
 	yBarraTempo = yBannerTempo;
 	// ########################################### Barra Tempo Light ###########################################
-// criar o DC do bitmap da barra do tempo
 	bmpDCBarraTempoL = CreateCompatibleDC(hdc);
-	// selecionar o bitmap da barra do tempo no DC
 	SelectObject(bmpDCBarraTempoL, hBmpBarraTempoL);
-	// obter o tamanho da janela
 	GetClientRect(hWnd, &rect);
-	// calcular a posição do bitmap da barra do tempo em relação ao banner do tempo
 	xBarraTempoL = xBannerTempoL - 4;
 	yBarraTempoL = yBannerTempoL;
 	// ########################################### Vidas ###########################################
-	// criar o DC do bitmap das vidas
 	bmpDCVidas = CreateCompatibleDC(hdc);
-	// selecionar o bitmap das vidas no DC
 	SelectObject(bmpDCVidas, hBmpVidas);
-	// obter o tamanho da janela
 	GetClientRect(hWnd, &rect);
-	// calcular a posição do bitmap das vidas em relação ao banner do tempo
 	xVidas = xBackground;
 	yVidas = yBackground + bmpBackground.bmHeight;
 	// ########################################### Vidas Light ###########################################
-	// criar o DC do bitmap das vidas
 	bmpDCVidasL = CreateCompatibleDC(hdc);
-	// selecionar o bitmap das vidas no DC
 	SelectObject(bmpDCVidasL, hBmpVidasL);
-	// obter o tamanho da janela
 	GetClientRect(hWnd, &rect);
-	// calcular a posição do bitmap das vidas em relação ao banner do tempo
 	xVidasL = xBackgroundL;
 	yVidasL = yBackgroundL + bmpBackgroundL.bmHeight;
 	// ########################################### Titulo ###########################################
-	// criar o DC do bitmap do titulo
 	bmpDCTitulo = CreateCompatibleDC(hdc);
-	// selecionar o bitmap do titulo no DC
 	SelectObject(bmpDCTitulo, hBmpTitulo);
-	// obter o tamanho da janela
 	GetClientRect(hWnd, &rect);
-	// calcular a posição do bitmap do titulo em relação ao background
 	xTitulo = xBackground;
 	yTitulo = yBackground - bmpTitulo.bmHeight;
 	// ########################################### Titulo Light ###########################################
-	// criar o DC do bitmap do titulo
 	bmpDCTituloL = CreateCompatibleDC(hdc);
-	// selecionar o bitmap do titulo no DC
 	SelectObject(bmpDCTituloL, hBmpTituloL);
-	// obter o tamanho da janela
 	GetClientRect(hWnd, &rect);
-	// calcular a posição do bitmap do titulo em relação ao background
 	xTituloL = xBackgroundL;
 	yTituloL = yBackgroundL - bmpTituloL.bmHeight;
-	// libertar o DC
 	ReleaseDC(hWnd, hdc);
 
 	break;
@@ -531,33 +459,23 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_SIZE:
-		// obter o tamanho da janela
 		GetClientRect(hWnd, &rect);
-		// alterar a posição do bitmap do background
 		xBackgroundL = xBackground = (rect.right - rect.left - bmpBackground.bmWidth) / 2;
 		yBackgroundL = yBackground = (rect.bottom - rect.top - bmpBackground.bmHeight) / 2;
-		// alterar a posição do bitmap do obstaculo em relação ao background
 		xObstaculoL = xObstaculo = xBackground + 4;
 		yObstaculoL = yObstaculo = yBackground + bmpObstaculo.bmHeight + 2;
-		// alterar a posição do bitmap do carro em relação ao background
 		xCarroL = xCarro = xBackground + 4;
 		yCarroL = yCarro = yBackground + (bmpCarro.bmHeight + 4) * 3;
-		// alterar a posição do bitmap do sapo em relação ao background
 		xSapoL = xSapo = xBackground + 4;
 		ySapoL = yBackground + bmpBackground.bmHeight - bmpSapo.bmHeight;
-		// alterar a posição do bitmap do titulo em relação ao background
 		xTituloL = xTitulo = xBackground;
 		yTituloL = yTitulo = yBackground - bmpTitulo.bmHeight;
-		// alterar a posição do bitmap das vidas em relação ao background
 		xVidasL = xVidas = xBackground;
 		yVidasL = yVidas = yBackground + bmpBackground.bmHeight;
-		// alterar a posição do bitmap do banner do tempo em relação ao background
 		xBannerTempoL = xBannerTempo = xBackground + bmpBackground.bmWidth - bmpBannerTempo.bmWidth;
 		yBannerTempoL = yBannerTempo = yBackground + bmpBackground.bmHeight;
-		// alterar a posição do bitmap da barra do tempo em relação ao background
 		xBarraTempoL = xBarraTempo = xBackground + bmpBackground.bmWidth - bmpBarraTempo.bmWidth;
 		yBarraTempoL = yBarraTempo = yBackground + bmpBackground.bmHeight + bmpBannerTempo.bmHeight;
-
 		break;
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
@@ -568,7 +486,6 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 				wcscpy_s(pLocal->mensagemaEnviar, SINGLEPLAYEROPT);
 				WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);
 			}
-
 			break;
 		case IDM_MULTI_PLAYER:
 			MessageBox(hWnd, TEXT("Multi Player selecionado"), TEXT("Confirmação"), MB_OK | MB_ICONERROR);
@@ -591,7 +508,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			wcscpy_s(pLocal->mensagemaEnviar, TEXT("7\0"));
 			WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);
 			if (pLocal->nBytesWriten < 1) {
-				_tprintf_s(TEXT("O Servidor encerrou a conexão\n"));
+				MessageBox(hWnd, TEXT("O Servidor encerrou a conexão"), TEXT("Confirmação"), MB_OK | MB_ICONERROR);
 				ExitProcess(0);
 			}
 			Sleep(1000);
@@ -601,7 +518,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			wcscpy_s(pLocal->mensagemaEnviar, TEXT("8\0"));
 			WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);
 			if (pLocal->nBytesWriten < 1) {
-				_tprintf_s(TEXT("O Servidor encerrou a conexão\n"));
+				MessageBox(hWnd, TEXT("O Servidor encerrou a conexão"), TEXT("Confirmação"), MB_OK | MB_ICONERROR);
 				ExitProcess(0);
 			}
 			break;
@@ -614,8 +531,6 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		tecla = (TCHAR)wParam;
 		switch (tecla) {
 		case VK_UP:
-			// verificar se é possivel andar nesta direção
-			// não esquecer CriticalSection
 			if (pLocal->myY == 0)
 				break;
 			if (pLocal->myY != 0 && pLocal->objetos[20 * pLocal->myY + pLocal->myX - 20].tipo == SAPO)
@@ -623,10 +538,9 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			wcscpy_s(pLocal->mensagemaEnviar, MOVE_UP);
 			WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);;
 			if (pLocal->nBytesWriten < 1) {
-				_tprintf_s(TEXT("O Servidor encerrou a conexão\n"));
+				MessageBox(hWnd, TEXT("O Servidor encerrou a conexão"), TEXT("Confirmação"), MB_OK | MB_ICONERROR);
 				ExitProcess(0);
 			}
-
 			break;
 		case VK_DOWN:
 			if (pLocal->myY == 0 || pLocal->myY == pLocal->numeroFaixas)
@@ -636,7 +550,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			wcscpy_s(pLocal->mensagemaEnviar, MOVE_DOWN);
 			WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);
 			if (pLocal->nBytesWriten < 1) {
-				_tprintf_s(TEXT("O Servidor encerrou a conexão\n"));
+				MessageBox(hWnd, TEXT("O Servidor encerrou a conexão"), TEXT("Confirmação"), MB_OK | MB_ICONERROR);
 				ExitProcess(0);
 			}
 			break;
@@ -648,7 +562,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			wcscpy_s(pLocal->mensagemaEnviar, MOVE_RIGHT);
 			WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);
 			if (pLocal->nBytesWriten < 1) {
-				_tprintf_s(TEXT("O Servidor encerrou a conexão\n"));
+				MessageBox(hWnd, TEXT("O Servidor encerrou a conexão"), TEXT("Confirmação"), MB_OK | MB_ICONERROR);
 				ExitProcess(0);
 			}
 			break;
@@ -658,13 +572,12 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			wcscpy_s(pLocal->mensagemaEnviar, MOVE_LEFT);
 			WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);
 			if (pLocal->nBytesWriten < 1) {
-				_tprintf_s(TEXT("O Servidor encerrou a conexão\n"));
+				MessageBox(hWnd, TEXT("O Servidor encerrou a conexão"), TEXT("Confirmação"), MB_OK | MB_ICONERROR);
 				ExitProcess(0);
 			}
 			break;
 		}
 		break;
-	// caso seja um clique com o botão esquerdo do rato
 	case WM_LBUTTONDOWN:
 		// obter as coordenadas do clique
 		// verificas as coordenadas do clique em relação Às coordenadas do sapo
@@ -673,6 +586,9 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		// se o clique for à direita do sapo, envia Move Right
 		// se o clique for à esquerda do sapo, envia Move Left
 		// setEvent(local.hEventoEnviaMensagem);
+		break;
+	case WM_RBUTTONDOWN:
+		// mover o sapo para a posição inicial
 		break;
 	case WM_CLOSE:
 		if (MessageBox(hWnd, TEXT("Deseja mesmo sair?"), TEXT("Sair"), MB_YESNO | MB_ICONQUESTION) == IDYES)
@@ -695,26 +611,17 @@ void ParseMessage(LOCAL* origenate) {
 		// mensagem com informações complementares ao jogo (terminou, ganhou, encerrou)
 	}
 	else {
-
-		// extrair a informação da mensagem com strtok
-		// nivel vidas tempo pontuação wwwwwwwwwwwwwwwwwwwwc c c c c c c c c c ...\0
-		// copia a mensagem para a estrutura LOCAL
 		TCHAR* next_token = NULL;
-		//_tcscpy_s(local.mensagem, sizeof(local.mensagem), mensagem);
 		TCHAR* token = _tcstok_s((TCHAR*)origenate->mensagem, TEXT(" "), &next_token);
 		origenate->myY = _ttoi(token);
 		token = _tcstok_s(NULL, TEXT(" "), &next_token);
 		origenate->myX = _ttoi(token);
-		// extrai o nivel
 		token = _tcstok_s(NULL, TEXT(" "), &next_token);
 		origenate->nivel = _ttoi(token);
-		// extrai as vidas
 		token = _tcstok_s(NULL, TEXT(" "), &next_token);
 		origenate->vidas = _ttoi(token);
-		// extrai o tempo
 		token = _tcstok_s(NULL, TEXT(" "), &next_token);
 		origenate->tempo = _ttoi(token);
-		// extrai a pontuação
 		token = _tcstok_s(NULL, TEXT(" "), &next_token);
 		origenate->pontuacao = _ttoi(token);
 
@@ -775,9 +682,5 @@ DWORD WINAPI lerMessages(LPVOID param) {
 			break;
 		}
 	}
-
 	return 0;
 }
-
-
-

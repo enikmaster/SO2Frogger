@@ -189,9 +189,8 @@ FROGGERINO_API typedef struct _CONTROLDATA { // informação para controlo de flux
     HANDLE hWriteSem; // n
     HANDLE hReadSem;  // 1
     Info* infoControl;
+    BOOL fechar;
 } ControlData;
-
-
 
 
 // variáveis

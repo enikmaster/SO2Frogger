@@ -1,5 +1,5 @@
 ﻿#include "operador.h"
-//#include "..\Froggerino\froggerino.h"
+
 
 int _tmain(int argc, TCHAR** argv) {
 #ifdef UNICODE

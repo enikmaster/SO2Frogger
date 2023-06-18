@@ -13,6 +13,8 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 	hEventos[2] = pData->a->hEventoPausaJogo;
 	hEventos[1] = pData->a->hEventoTerminouTempo;
 	hEventos[0] = pData->a->hEventoPausaJogo;
+	srand(time(NULL));
+	DWORD add = 0;
 	pData->sentidoFaixa = TRUE;
 	do {
 		WaitForSingleObject(pData->a->hEventStart, INFINITE);
@@ -63,12 +65,13 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 				z = 1;
 			if (start) {
 				EnterCriticalSection(&pData->a->x);
-				if (pData->colocaObjeto) {
+				if (pData->colocaObjeto && add == 0) {
 					do {
 						DWORD random_num = rand() % (20 - 0 + 1);
 						if (pData->arrayGame[pData->nFaixaResp][random_num] == TEXT(' ')) {
 							pData->arrayGame[pData->nFaixaResp][random_num] = pData->o.o;
 							pData->colocaObjeto = FALSE;
+							++add;
 						}
 					} while (pData->colocaObjeto);
 					SetEvent(pData->a->hEventoAtualiza);

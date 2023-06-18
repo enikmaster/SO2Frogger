@@ -18,6 +18,11 @@
 #define IDM_COR_LIGHT 1005
 #define IDM_COR_DARK 1006
 #define BUFSIZE 4096
+#define NUMERO_COLUNAS 20
+#define MOVE_RIGHT TEXT("3\0")
+#define MOVE_LEFT TEXT("4\0")
+#define MOVE_UP TEXT("5\0")
+#define MOVE_DOWN TEXT("6\0")
 
 #define SAPO TEXT('S')
 #define CARRO TEXT('C')
@@ -47,6 +52,8 @@ typedef struct LOCAL {
 	CRITICAL_SECTION cs;
 	HANDLE hEventoEnviaMensagem;
 	DWORD jumpSucesso;
+	DWORD myX, myY;
+	BOOL playing = FALSE;
 };
 
 LRESULT CALLBACK TrataEventos(HWND, UINT, WPARAM, LPARAM);
@@ -65,8 +72,12 @@ void ParseMessage(LOCAL* origenate) {
 		// copia a mensagem para a estrutura LOCAL
 		TCHAR* next_token = NULL;
 		//_tcscpy_s(local.mensagem, sizeof(local.mensagem), mensagem);
-		// extrai o nivel
 		TCHAR* token = _tcstok_s((TCHAR*)origenate->mensagem, TEXT(" "), &next_token);
+		origenate->myY = _ttoi(token);
+		token = _tcstok_s(NULL, TEXT(" "), &next_token);
+		origenate->myX = _ttoi(token);
+		// extrai o nivel
+		token = _tcstok_s((TCHAR*)origenate->mensagem, TEXT(" "), &next_token);
 		origenate->nivel = _ttoi(token);
 		// extrai as vidas
 		token = _tcstok_s(NULL, TEXT(" "), &next_token);
@@ -160,7 +171,7 @@ DWORD WINAPI enviaComandos(LPVOID param) {
 			}
 			else
 				break;
-
+			ResetEvent(origem->hEventoEnviaMensagem);
 		} while (origem->nBytesWriten > 0);   // NPipe foi encerrado pela thread inicial...
 		ExitThread(0);
 }
@@ -242,7 +253,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		250,					// Posição x default
 		250,					// Posição y default
 		800,					// Comprimento default
-		500,					// Altura default
+		800,					// Altura default
 		(HWND)HWND_DESKTOP,		// Janela-pai
 		(HMENU)NULL,			// Menu
 		(HINSTANCE)hInst,		// Instância
@@ -279,6 +290,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	PAINTSTRUCT ps;
 	RECT rect;
 	LOCAL* pLocal = NULL;
+	TCHAR tecla;
 
 	// Retrieve the address of the 'local' variable associated with the window handle
 	pLocal = (LOCAL*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
@@ -711,23 +723,12 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		switch (LOWORD(wParam)) {
 			// caso a opção "Single player" do menu "Novo jogo" seja selecionada
 		case IDM_SINGLE_PLAYER:
-			/*
-			// ler a informação da struct comum com os dados do jogo
-			//WaitForSingleObject(hMutex, INFINITE);
-			// obter o tamanho da janela
-			GetClientRect(hWnd, &rect);
-			// alterar a posição do bitmap do background para o colocar numa posição inicial no centro da janela
-			xBackground = (rect.right - rect.left - bmpBackground.bmWidth) / 2;
-			yBackground = (rect.bottom - rect.top - bmpBackground.bmHeight) / 2;
-			// por cada obstaculo que existir na struct comum alterar a posição do bitmap do obstaculo em relação ao background
-			for (int i = 0; i < 20; i++) {
-				xObstaculo = xBackground + 4;
-				yObstaculo = yBackground + bmpObstaculo.bmHeight + 2;
-				xObstaculo += (bmpObstaculo.bmWidth + 4) * i;
+			if(!pLocal->playing) {
+				pLocal->playing = TRUE;
+				wcscpy_s(pLocal->mensagemaEnviar, TEXT("0\0"));
+				SetEvent(pLocal->hEventoEnviaMensagem);
 			}
-			*/
-			//SetEvento(local.hEvento);
-			MessageBox(hWnd, TEXT("Single Player selecionado"), TEXT("Confirmação"), MB_OK | MB_ICONERROR);
+
 			break;
 		case IDM_MULTI_PLAYER:
 			MessageBox(hWnd, TEXT("Multi Player selecionado"), TEXT("Confirmação"), MB_OK | MB_ICONERROR);
@@ -747,7 +748,55 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			break;
 		}
 		break;
-		
+	case WM_CHAR:
+		tecla = (TCHAR)wParam;
+		switch (tecla) {
+		case VK_UP:
+			// verificar se é possivel andar nesta direção
+			// não esquecer CriticalSection
+			if (pLocal->myY == 0)
+				break;
+			if (pLocal->myY != 0 && pLocal->objetos[20 * pLocal->myY + pLocal->myX - 20].tipo == SAPO)
+				break;
+			wcscpy_s(pLocal->mensagemaEnviar, MOVE_UP);
+			SetEvent(pLocal->hEventoEnviaMensagem);
+			break;
+		case VK_DOWN:
+			if (pLocal->myY == 0 || pLocal->myY == pLocal->numeroFaixas)
+				break;
+			if (pLocal->myY != pLocal->numeroFaixas && pLocal->objetos[20 * pLocal->myY + pLocal->myX + 20].tipo == SAPO)
+				break;
+			wcscpy_s(pLocal->mensagemaEnviar, MOVE_DOWN);
+			SetEvent(pLocal->hEventoEnviaMensagem);
+			break;
+		case VK_RIGHT:
+			if (pLocal->myY == 0)
+				break;
+			if(pLocal->myX == NUMERO_COLUNAS-1 || pLocal->objetos[20 * pLocal->myY + pLocal->myX + 1].tipo == SAPO)
+				break;
+			wcscpy_s(pLocal->mensagemaEnviar, MOVE_RIGHT);
+			SetEvent(pLocal->hEventoEnviaMensagem);
+			break;
+		case VK_LEFT:
+			if (pLocal->myY == 0)
+				break;
+			if (pLocal->myX == 0 || pLocal->objetos[20 * pLocal->myY + pLocal->myX - 1].tipo == SAPO)
+				break;
+			wcscpy_s(pLocal->mensagemaEnviar, MOVE_LEFT);
+			SetEvent(pLocal->hEventoEnviaMensagem);
+			break;
+		}
+		break;
+	// caso seja um clique com o botão esquerdo do rato
+	case WM_LBUTTONDOWN:
+		// obter as coordenadas do clique
+		// verificas as coordenadas do clique em relação Às coordenadas do sapo
+		// se o clique for acima do sapo, envia Move Up local.mensagemaEnviar[0] = MOVE_UP;
+		// se o clique for abaixo do sapo, envia Move Down
+		// se o clique for à direita do sapo, envia Move Right
+		// se o clique for à esquerda do sapo, envia Move Left
+		// setEvent(local.hEventoEnviaMensagem);
+		break;
 	case WM_CLOSE:
 		if (MessageBox(hWnd, TEXT("Deseja mesmo sair?"), TEXT("Sair"), MB_YESNO | MB_ICONQUESTION) == IDYES)
 			DestroyWindow(hWnd);

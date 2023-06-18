@@ -545,11 +545,11 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 						if (pdata->pipeMgm[i].hPipeInst != NULL && pdata->pipeMgm[i].ligado) {
 							if (i == 0)
 							{
-								wsprintf(MessageSending, TEXT("%d %d %d %d %s"), pdata->nivel->lvlActual, pdata->saposa->vidas, pdata->nivel->tempo / 1000, pdata->saposa->score, pdata->chReply);
+								wsprintf(MessageSending, TEXT("%d %d %d %d %d %d %s"), pdata->saposa->pos_atual.X, pdata->saposa->pos_atual.Y, pdata->nivel->lvlActual, pdata->saposa->vidas, pdata->nivel->tempo / 1000, pdata->saposa->score, pdata->chReply);
 								//WindowsConcatString(MessageSending, pdata->chRepk)
 							}
 							else
-								wsprintf(MessageSending, TEXT("%d %d %d %d %s"), pdata->nivel->lvlActual, pdata->saposb->vidas, pdata->nivel->tempo, pdata->saposb->score, pdata->chReply);
+								wsprintf(MessageSending, TEXT("%d %d %d %d %d %d %s"), pdata->saposb->pos_atual.X, pdata->saposb->pos_atual.Y, pdata->nivel->lvlActual, pdata->saposb->vidas, pdata->nivel->tempo, pdata->saposb->score, pdata->chReply);
 							ZeroMemory(&ov, sizeof(OVERLAPPED));
 							ov.hEvent = hEvento;
 							ResetEvent(hEvento);
@@ -610,7 +610,6 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 	LeaveCriticalSection(&pdata->gere->x);
 	LposX = sapoAcontrolar->pos_atual.X;
 	LposY = sapoAcontrolar->pos_atual.Y;
-	SetEvent(pdata->gere->hEventStart);
 	while (1) {
 		X = WaitForSingleObject(pdata->pipeMgm[z].hEventoThread, 10000);
 		ResetEvent(pdata->pipeMgm[z].hEventoThread);

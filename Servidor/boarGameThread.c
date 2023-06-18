@@ -11,8 +11,8 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 	DWORD previousLevel = 0;
 	hEventos[3] = pData->a->hEventoRestartGame;
 	hEventos[2] = pData->a->hEventoPausaJogo;
-	hEventos[1] = pData->a->hEventoTerminouJogo;
-	hEventos[0] = pData->a->hEventoTerminouTempo;
+	hEventos[1] = pData->a->hEventoTerminouTempo;
+	hEventos[0] = pData->a->hEventoPausaJogo;
 	pData->sentidoFaixa = TRUE;
 	do {
 		WaitForSingleObject(pData->a->hEventStart, INFINITE);
@@ -37,10 +37,13 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 					X -= WAIT_OBJECT_0;
 					switch (X)
 					{
-					case 1:
-						reset = TRUE;
-						exit = 1;
-						break;
+					case 0:
+						for (int i = 0; i < 4; i++)
+						{
+							CloseHandle(hEventos[i]);
+							if (i == 3)
+								ExitThread(-1);
+						}
 					case 2:
 						EnterCriticalSection(&pData->a->x);
 						previousLevel = pData->nivel->lvlActual;
@@ -225,12 +228,11 @@ DWORD WINAPI ThreadsFaixa(LPVOID param) {
 			}
 		} while (!reset);
 	} while (exit == 0);
-	_tprintf_s(TEXT("Thread a dar delete"));
-	ExitThread(1);
+	ExitThread(-1);
 }
 DWORD WINAPI EstadoTabuleiro(LPVOID param) { //inicializar esta thread para fazer gestão do tabuleiro sempre que houver um nivel novo
 	Info* pdata = (Info*)param;
-	HANDLE hEventos[5];
+	HANDLE hEventos[6];
 	hEventos[0] = pdata->a->hEventoTerminouTempo;
 	hEventos[1] = pdata->a->hEventoTerminouJogo;
 	hEventos[2] = pdata->a->hEventoStopAll;
@@ -257,7 +259,11 @@ DWORD WINAPI EstadoTabuleiro(LPVOID param) { //inicializar esta thread para faze
 		if (X >= WAIT_OBJECT_0)
 			X -= WAIT_OBJECT_0;
 		if (X == 1 || X == 2) {
-			ExitThread(0); // a mudar
+			for(int i = 0; i<5; i++)
+			{
+				CloseHandle(hEventos[i]);
+					ExitThread(-2);
+			}
 		}
 		else if (X == 4) {
 			EnterCriticalSection(&pdata->a->x);
@@ -290,8 +296,10 @@ DWORD WINAPI EstadoTabuleiro(LPVOID param) { //inicializar esta thread para faze
 		}
 
 		EnterCriticalSection(&pdata->a->x);
+		if (X == 0)
+			ResetEvent(pdata->a->hEventoTerminouTempo);
 		DWORD last_number = -1;
-		for (int i = pdata->numFaixasTotal; i > 0; i--) {
+		for (int i = pdata->numFaixasTotal +1 ; i >= 0; i--) {
 			for (int j = 0; j < COLUMNS; j++) {
 				pdata->arrayGame[i][j] = TEXT(' ');
 			}
@@ -325,20 +333,32 @@ DWORD WINAPI EstadoTabuleiro(LPVOID param) { //inicializar esta thread para faze
 			for (int l = 0; l < 6; l++)
 				noRepeat[l] = -1;
 		}
-
+		for (int i = 0; i < 2; i++) {
+			if (pdata->sapos[i].activo)
+				pdata->arrayGame[pdata->sapos[i].pos_inicial.X][pdata->sapos[i].pos_inicial.Y] = TEXT('S');
+		}
 		ResetEvent(hEventos[X]);
+		LeaveCriticalSection(&pdata->a->x);
 		SetEvent(pdata->a->hEventStart);
 		SetEvent(pdata->a->hEventoAtualiza);
-		SetEvent(pdata->a->hEventoEscreveSapos);
-		LeaveCriticalSection(&pdata->a->x);
+		
 	}
 
 }
 DWORD WINAPI LeComandosOperadoresThread(LPVOID param) {
 	ControlData* pdata = (LPVOID*)param;
 	BufferCell infoToMake;
+	HANDLE hEventos[2];
+	hEventos[0] = pdata->hReadSem;
+	hEventos[1] = OpenEvent(EVENT_ALL_ACCESS, FALSE, TERMINOUJOGO);
 	while (pdata->infoControl->end) {
-		WaitForSingleObject(pdata->hReadSem, INFINITE);
+		DWORD X = WaitForMultipleObjects(2,hEventos,FALSE, INFINITE);
+		if (X == WAIT_OBJECT_0 + 1)
+		{
+			CloseHandle(hEventos[0]);
+			CloseHandle(hEventos[1]);
+			ExitThread(-3);
+		}
 		WaitForSingleObject(pdata->hMutex, INFINITE); //mutex unico da memória partilhada
 		CopyMemory(&infoToMake, &pdata->sharedMem->buffer[pdata->sharedMem->rP++], sizeof(pdata->sharedMem->buffer));
 		if (pdata->sharedMem->rP == BUFFER_SIZE)
@@ -378,15 +398,16 @@ DWORD WINAPI LeComandosOperadoresThread(LPVOID param) {
 	return 0;
 }
 DWORD WINAPI ThreadVeTeclado(LPVOID param) {
-	DWORD* x = (DWORD*)param;
+	ControlaPipes* pdata = (ControlaPipes*)param;
+	_tprintf_s(TEXT("Bem vindo ao Servidor do Jogo Frogger.\nO jogo conta com um numero total de: %d #FAIXAS# com carros\nPara sair escreva apenas: sair a qualquer momento\n"), pdata->nFaixas);
 	do {
 		TCHAR hi[20];
 		_fgetts(hi, 20, stdin);
 		if (wcscmp(hi, TEXT("sair\n")) == 0)
 			break;
 	} while (1);
-	*x = 1;
-	ExitThread(0);
+	SetEvent(pdata->gere->hEventoTerminouJogo);
+	ExitThread(-4);
 }
 DWORD WINAPI ControlaPipesF(LPVOID param) {
 	ControlaPipes* pdata = (ControlaPipes*)param;
@@ -394,7 +415,7 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 	BOOL Sucesso;
 	OVERLAPPED ov;
 	DWORD x = 0, n, y;
-	HANDLE hEventoss[INSTANCES + 2];
+	HANDLE hEventoss[INSTANCES + 3];
 	TCHAR MessageSending[BUFSIZE];
 	HANDLE hEvento = CreateEvent(
 		NULL,
@@ -404,7 +425,7 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 
 	if (hEvento == NULL) {
 		_tprintf_s(TEXT("[ERRO] Erro ao criar evento.\n"));
-		ExitThread(-1);
+		ExitThread(-5);
 	}
 
 	for (DWORD i = 0; i < INSTANCES; i++) {
@@ -415,7 +436,7 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 			NULL);
 		if (pdata->pipeMgm[i].hEvent == NULL) {
 			_tprintf_s(TEXT("[ERRO] Erro ao criar evento para Namedpipe Instancia falhou.\n"));
-			ExitThread(-1);
+			ExitThread(-5);
 		}
 		pdata->pipeMgm[i].hEventoThread = CreateEvent(
 			NULL,
@@ -425,7 +446,7 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 
 		if (pdata->pipeMgm[i].hEventoThread == NULL) {
 			_tprintf_s(TEXT("[ERRO] Erro ao criar evento para Namedpipe Instancia falhou.\n"));
-			ExitThread(-1);
+			ExitThread(-5);
 		}
 
 
@@ -444,7 +465,7 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 
 		if (pdata->pipeMgm[i].hPipeInst == INVALID_HANDLE_VALUE) {
 			_tprintf_s(TEXT("[ERRO] Erro ao criar instancia de namedpipe.\n"));
-			ExitThread(-1);
+			ExitThread(-5);
 		}
 
 		pdata->pipeMgm[i].ligado = FALSE;
@@ -458,7 +479,7 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 
 		if (pdata->pipeMgm[i].hEventDiff == NULL) {
 			_tprintf_s(TEXT("[ERRO] Erro ao criar evento para Namedpipe Instancia falhou.\n"));
-			ExitThread(-1);
+			ExitThread(-5);
 		}
 		if (!ConnectNamedPipe(pdata->pipeMgm[i].hPipeInst, &pdata->pipeMgm[i].oOverlap)) {
 			if (GetLastError() != ERROR_IO_PENDING) {
@@ -479,6 +500,7 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 	hEventosMul[1] = pdata->pipeMgm[1].hEvent;
 	hEventoss[3] = eventoFecha;
 	hEventoss[2] = pdata->gere->hEventoEscreveSapos;
+	hEventoss[4] = pdata->gere->hEventoTerminouJogo;
 	DWORD flagg = 1;
 	pdata->singlePlayer = FALSE;
 	pdata->multiPlayer = FALSE;
@@ -487,13 +509,19 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 		for (y = 0, n = 0; y < INSTANCES; y++)
 			if (pdata->pipeMgm[y].hPipeInst != NULL)
 				hEventoss[n++] = pdata->pipeMgm[y].hEvent;
-		DWORD i = WaitForMultipleObjects(4, hEventoss, FALSE, INFINITE);
+		DWORD i = WaitForMultipleObjects(5, hEventoss, FALSE, INFINITE);
 		if (i >= WAIT_OBJECT_0) {
 			i -= WAIT_OBJECT_0;
 			// a testar
 			if (i == 3) {
 				break;
 			}
+			if(i == 4)
+				for (int i = 0; i < 5; i++) {
+					CloseHandle(hEventoss[i]);
+					if (i == 4)
+						ExitThread(-5);
+				}
 			if (i == 2) {
 				flagg = 0;
 				i = 0;
@@ -510,7 +538,6 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 				ZeroMemory(&pdata->pipeMgm[i].oOverlap, sizeof(OVERLAPPED));
 				pdata->pipeMgm[i].oOverlap.hEvent = pdata->pipeMgm[i].hEvent;
 				ReadFile(pdata->pipeMgm[i].hPipeInst, pdata->pipeMgm[i].chRequest, BUFSIZE, &pdata->pipeMgm[i].cbRead, &pdata->pipeMgm[i].oOverlap);
-				_tprintf_s(TEXT("Recebi connection\n"));
 			}
 			else {
 				if (pdata->pipeMgm[i].cbRead > 0 && i != 2 && flagg == 1) {
@@ -533,6 +560,8 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 					ReadFile(pdata->pipeMgm[i].hPipeInst, pdata->pipeMgm[i].chRequest, BUFSIZE, &pdata->pipeMgm[i].cbRead, &pdata->pipeMgm[i].oOverlap);
 				}
 				else if (flagg == 0) {
+					if (pdata->saposa->StandBy == TRUE)
+						break;
 					EnterCriticalSection(&pdata->gere->x);
 					DWORD index = 0;
 					for (int y = 0; y < pdata->nFaixas + 2; y++) {
@@ -543,14 +572,14 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 					pdata->chReply[index] = '\0';
 					index = 0;
 					for (int i = 0; i < INSTANCES; i++) {
-						if (pdata->pipeMgm[i].hPipeInst != NULL && pdata->pipeMgm[i].ligado) {
+						
+						if (pdata->pipeMgm[i].hPipeInst != NULL && pdata->pipeMgm[i].ligado) {		
 							if (i == 0)
 							{
-								wsprintf(MessageSending, TEXT("%d %d %d %d %d %d %s"), pdata->saposa->pos_atual.X, pdata->saposa->pos_atual.Y, pdata->nivel->lvlActual, pdata->saposa->vidas, pdata->nivel->tempo / 1000, pdata->saposa->score, pdata->chReply);
-								//WindowsConcatString(MessageSending, pdata->chRepk)
+								wsprintf(MessageSending, TEXT("%d %d %d %d %d %d %s\0"), pdata->saposa->pos_atual.X, pdata->saposa->pos_atual.Y,pdata->saposa->lvl, pdata->saposa->vidas, pdata->saposa->temp, pdata->saposa->score, pdata->chReply);
 							}
 							else
-								wsprintf(MessageSending, TEXT("%d %d %d %d %d %d %s"), pdata->saposb->pos_atual.X, pdata->saposb->pos_atual.Y, pdata->nivel->lvlActual, pdata->saposb->vidas, pdata->nivel->tempo, pdata->saposb->score, pdata->chReply);
+								wsprintf(MessageSending, TEXT("%d %d %d %d %d %d %s\0"), pdata->saposb->pos_atual.X, pdata->saposb->pos_atual.Y, pdata->saposb->lvl, pdata->saposb->vidas, pdata->nivel->tempo, pdata->saposb->score, pdata->chReply);
 							ZeroMemory(&ov, sizeof(OVERLAPPED));
 							ov.hEvent = hEvento;
 							ResetEvent(hEvento);
@@ -574,17 +603,22 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 				}
 				else {
 					// O que fazer?
-					DisconnectNamedPipe(pdata->pipeMgm[i].hPipeInst);
-					pdata->pipeMgm[i].ligado = FALSE;
-					ZeroMemory(&pdata->pipeMgm[i].oOverlap, sizeof(OVERLAPPED));
-					pdata->pipeMgm[i].oOverlap.hEvent = pdata->pipeMgm[i].hEvent;
-					ConnectNamedPipe(pdata->pipeMgm[i].hPipeInst, &pdata->pipeMgm[i].oOverlap);
+					if (pdata->pipeMgm[1].ligado) {
+						DisconnectNamedPipe(pdata->pipeMgm[i].hPipeInst);
+						pdata->pipeMgm[i].ligado = FALSE;
+						ZeroMemory(&pdata->pipeMgm[i].oOverlap, sizeof(OVERLAPPED));
+						pdata->pipeMgm[i].oOverlap.hEvent = pdata->pipeMgm[i].hEvent;
+						ConnectNamedPipe(pdata->pipeMgm[i].hPipeInst, &pdata->pipeMgm[i].oOverlap);
+					}
+					else
+						SetEvent(pdata->gere->hEventoTerminouJogo);
+					ExitThread(-5);
 				}
 			}
 		}
 	}
 	WaitForMultipleObjects(INSTANCES, pdata->ThreadsParaSapo, TRUE, INFINITE);
-	ExitThread(0);
+	ExitThread(-5);
 }
 DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 	ControlaPipes* pdata = (LPVOID*)param;
@@ -598,15 +632,18 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 	DWORD LposX = 0;
 	DWORD LposY = 0;
 	BOOL FIRST = TRUE;
+	BOOL givePoints = FALSE;
 	if (pdata->sapoAControlar == 0) {
 		sapoAcontrolar = pdata->saposa;
 		sapoAcontrolar->activo = TRUE;
+		sapoAcontrolar->StandBy = FALSE;
 		z = 0;
 	}
 	else
 	{
 		sapoAcontrolar = pdata->saposb;
 		sapoAcontrolar->activo = TRUE;
+		sapoAcontrolar->StandBy = FALSE;
 		z = 1;
 	}
 	EnterCriticalSection(&pdata->gere->x);
@@ -626,10 +663,15 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 		}
 		ResetEvent(pdata->pipeMgm[z].hEventoThread);
 		if (X == WAIT_TIMEOUT) {
+			if (sapoAcontrolar->pos_atual.X == 0 || sapoAcontrolar->StandBy == TRUE)
+				continue;
+			LposX = sapoAcontrolar->pos_atual.X;
+			LposY = sapoAcontrolar->pos_atual.Y;
 			sapoAcontrolar->pos_atual.X = sapoAcontrolar->pos_inicial.X;
 			sapoAcontrolar->pos_atual.Y = sapoAcontrolar->pos_inicial.Y;
 			EnterCriticalSection(&pdata->gere->x);
 			pdata->GameBoard[sapoAcontrolar->pos_atual.X][sapoAcontrolar->pos_atual.Y] = TEXT('S');
+			pdata->GameBoard[LposX][LposY] = TEXT(' ');
 			LeaveCriticalSection(&pdata->gere->x);
 			continue;
 		}
@@ -700,11 +742,11 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 						break;
 					case 5: //Mover Cima
 						if (sapoAcontrolar->pos_atual.X == 0) {
-							sapoAcontrolar->move = FALSE;
 							break;
 						}
 						sapoAcontrolar->pos_atual.X -= 1;
 						sapoAcontrolar->move = TRUE;
+						givePoints = TRUE;
 						break;
 					case 6: //Mover Baixo
 						if (sapoAcontrolar->pos_atual.X == 0 || sapoAcontrolar->pos_atual.X == (pdata->nFaixas+1)) {
@@ -716,8 +758,10 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 						break; 
 					case 7: //Pausar Jogo Só para SP
 						SetEvent(pdata->gere->hEventoPausaJogo);
+						sapoAcontrolar->StandBy = TRUE;
 						break;
 					case 8: //Continuar Jogo Só para SP
+						sapoAcontrolar->StandBy = FALSE;
 						ResetEvent(pdata->gere->hEventoPausaJogo);
 						SetEvent(pdata->gere->hEventoResumegame);
 						break;
@@ -735,20 +779,38 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 					{
 						pdata->GameBoard[sapoAcontrolar->pos_atual.X][sapoAcontrolar->pos_atual.Y] = TEXT('S');
 						pdata->GameBoard[LposX][LposY] = TEXT(' ');
-						sapoAcontrolar->score += 10;
+						if(givePoints)
+						{
+							sapoAcontrolar->score += 10;
+							givePoints = FALSE;
+						}
+						if (sapoAcontrolar->pos_atual.X == 0) {
+							sapoAcontrolar->score += 200;
+							pdata->gere->NextLevel = TRUE;
+							pdata->GameBoard[sapoAcontrolar->pos_atual.X][sapoAcontrolar->pos_atual.Y] = TEXT(' ');
+							sapoAcontrolar->pos_atual.X = sapoAcontrolar->pos_inicial.X;
+							sapoAcontrolar->pos_atual.Y = sapoAcontrolar->pos_inicial.Y;
+						}
 					}
 					else {
+						pdata->GameBoard[LposX][LposY] = TEXT(' ');
 						sapoAcontrolar->pos_atual.X = sapoAcontrolar->pos_inicial.X;
 						sapoAcontrolar->pos_atual.Y = sapoAcontrolar->pos_inicial.Y;
+						pdata->GameBoard[sapoAcontrolar->pos_atual.X][sapoAcontrolar->pos_atual.Y] = TEXT('S');
 						if (--sapoAcontrolar->vidas == 0) {
 							sapoAcontrolar->activo = FALSE;
-							//Avisar que perdeu
-							//continue;
-							//SetEvent(pdata->pipeMgm[z].hEventDiff);
-
+							SetEvent(pdata->gere->hEventoTerminouJogo);
 							LeaveCriticalSection(&pdata->gere->x);
+							_tprintf_s(TEXT("Os Jogadores ficaram sem vidas!\nTerminou jogo!\n"));
 							continue;
 						}
+					}
+					SetEvent(pdata->gere->hEventoEscreveSapos);
+				}
+				else {
+					if (sapoAcontrolar->pos_atual.X == 0)
+					{
+						pdata->gere->NextLevel = TRUE;
 					}
 				}
 				Sleep(30);
@@ -761,36 +823,36 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 	DisconnectNamedPipe(pdata->pipeMgm[z].hPipeInst);
 	CloseHandle(pdata->pipeMgm[z].hPipeInst);
 	CloseHandle(pdata->pipeMgm[z].oOverlap.hEvent);
-	ExitThread(0);
+	ExitThread(-6);
 }
 DWORD WINAPI ThreadTempo(LPVOID param) {
 	Info* pdata = (Info*)param;
 	DWORD exit = 0;
 	DWORD z = 0;
 	DWORD X = 0;
-	HANDLE hEventos[4];
+	HANDLE hEventos[5];
+	BOOL NextLevel = FALSE;
 
 	hEventos[0] = pdata->a->hEventoStopAll;
 	hEventos[1] = pdata->a->hEventoTerminouJogo; //pois os sapos quando chegarem ambos à casa de chegada vão ter oportunidade de passar logo ao proximo nivel
 	hEventos[2] = pdata->a->hEventoPausaJogo;
 	hEventos[3] = pdata->a->hEventoRestartGame;
+	hEventos[4] = pdata->a->hEventoTerminouTempo;
+	pdata->a->NextLevel = FALSE;
 	do {
 		if (z == 0)
 			WaitForSingleObject(pdata->a->hEventStart, INFINITE);
 		z = 1;
 		do {
 			if (z == 1 || z == 2) {
-				X = WaitForMultipleObjects(4, hEventos, FALSE, 1000);
-				if (X != WAIT_TIMEOUT) {
-					pdata->end = 1;
-					ExitThread(0);
-				}
+				X = WaitForMultipleObjects(5, hEventos, FALSE, 1000);
+				
 				if (X >= WAIT_OBJECT_0)
 					X -= WAIT_OBJECT_0;
 				if (X < 2 ) {
 					pdata->end = 1;
-					SetEvent(pdata->a->hEventoStopAll);
-					ExitThread(0);
+					SetEvent(pdata->a->hEventoTerminouJogo);
+					ExitThread(-7);
 				}
 				else if (X == 2) {
 					WaitForSingleObject(pdata->a->hEventoResumegame, INFINITE);
@@ -806,6 +868,13 @@ DWORD WINAPI ThreadTempo(LPVOID param) {
 			}
 			EnterCriticalSection(&pdata->a->x);
 			pdata->nivel->tempo -= 1000;
+			pdata->sapos[0].temp = pdata->nivel->tempo / 1000;
+			pdata->sapos[1].temp = pdata->nivel->tempo / 1000;
+			if(pdata->a->NextLevel)
+			{
+				pdata->nivel->tempo = 0;
+				pdata->a->NextLevel = FALSE;
+			}
 			if (pdata->nivel->tempo == 0 && pdata->nivel->lvlActual == NIVEISDEJOGO) {
 				SetEvent(pdata->a->hEventoTerminouJogo);
 				pdata->end = 0;
@@ -815,20 +884,23 @@ DWORD WINAPI ThreadTempo(LPVOID param) {
 			}
 			else if (pdata->nivel->tempo == 0) {
 				++(pdata->nivel);
-				pdata->sapos[0].temp = pdata->nivel->tempo;
+				pdata->sapos[0].temp = pdata->nivel->tempo / 1000;
+				pdata->sapos[0].lvl = pdata->nivel->lvlActual;
 				if (pdata->sapos[1].activo)
-					pdata->sapos[1].temp = pdata->nivel->tempo;
+				{
+					pdata->sapos[1].temp = pdata->nivel->tempo / 1000;
+					pdata->sapos[1].lvl = pdata->nivel->lvlActual;
+				}
 				z = 2;
 				LeaveCriticalSection(&pdata->a->x);
 				SetEvent(pdata->a->hEventoTerminouTempo);
 				break;
 			}
 			LeaveCriticalSection(&pdata->a->x);
-			//_tprintf_s(TEXT("Nivel: %d  & Tempo: %d\n"), pdata->nivel->lvlActual, pdata->nivel->tempo / 1000);
 		} while (z == 1);
 
 	} while (exit == 0);
-	ExitProcess(0);
+	ExitProcess(-7);
 }
 
 void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
@@ -838,19 +910,14 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	o.s = TEXT('S');
 
 	TCHAR** boardGameArray = (TCHAR**)malloc(sizeof(TCHAR*) * dados.faixa);
-	_tprintf_s(TEXT("Faixas: %d\n"), dados.faixa);
-
 	for (int i = 0; i <= (dados.faixa + 1); i++) {
 		boardGameArray[i] = (TCHAR*)malloc(sizeof(TCHAR) * (COLUMNS + 1));
 		if (boardGameArray[i] == NULL) {
-			printf("Memory allocation failed.\n");
+			_tprintf_s("Memory allocation failed.\n");
 			ExitProcess(-1);
 		}
 		if (i == 0) {
 			for (int j = 0; j < COLUMNS; j++) {
-				if (j % 3 == 0)
-					boardGameArray[i][j] = TEXT('W');
-				else
 					boardGameArray[i][j] = TEXT(' ');
 			}
 			boardGameArray[i][COLUMNS] = '\0';
@@ -920,9 +987,10 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	allEventos.hEventoPausaJogo = CreateEvent(NULL, TRUE, FALSE, NULL);
 	allEventos.hEventoRestartGame = CreateEvent(NULL, TRUE, FALSE, NULL);
 	allEventos.hEventoResumegame = CreateEvent(NULL, TRUE, FALSE, NULL);
+	allEventos.hEventoNextLevel = CreateEvent(NULL, TRUE, FALSE, NULL);
 	allEventos.x = cs_;
 	allEventos.hEventoStopAll = CreateEvent(NULL, TRUE, FALSE, TEXT("STOPALL"));
-	if (allEventos.hEventoResumegame == NULL || allEventos.hEventoTerminouJogo == NULL || allEventos.hEventoTerminouJogo == NULL || allEventos.hEventoAtualiza == NULL || allEventos.hEventoStopAll == NULL || allEventos.hEventoPausaJogo == NULL || allEventos.hEventoRestartGame == NULL) {
+	if (allEventos.hEventoNextLevel == NULL || allEventos.hEventoResumegame == NULL || allEventos.hEventoTerminouJogo == NULL || allEventos.hEventoTerminouJogo == NULL || allEventos.hEventoAtualiza == NULL || allEventos.hEventoStopAll == NULL || allEventos.hEventoPausaJogo == NULL || allEventos.hEventoRestartGame == NULL) {
 		_tprintf_s(TEXT("[ERRO] Não reune as condiçoes para iniciar o servidor\n"));
 		ExitProcess(-1);
 	}
@@ -956,7 +1024,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 	ControlaPipes cp;
 	cp.saposa = &sapos[0];
 	cp.saposb = &sapos[1];
-	cp.nivel = niveis;
+	cp.nivel = &niveis;
 	cp.nFaixas = dados.faixa;
 	DWORD flagEndAll = 0;
 
@@ -1049,10 +1117,19 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 		ExitProcess(-1);
 	}
 	DWORD x = 0;
-	HANDLE fechar = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ThreadVeTeclado, (LPVOID)&x, 0, NULL);
+	HANDLE fechar = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ThreadVeTeclado, (LPVOID)&cp, 0, NULL);
+	HANDLE Verifica[2];
+	Verifica[0] = allEventos.hEventoAtualiza;
+	Verifica[1] = allEventos.hEventoTerminouJogo;
 	do {
 
-		WaitForSingleObject(allEventos.hEventoAtualiza, INFINITE);
+		DWORD i = WaitForMultipleObjects(2, Verifica, FALSE, INFINITE);
+		if (i >= WAIT_OBJECT_0) {
+			i -= WAIT_OBJECT_0;
+		}
+		if (i == 1) {
+			break;
+		}
 		WaitForSingleObject(hMutexArray, INFINITE);
 		EnterCriticalSection(&cs_);
 		for (int i = 0; i < dados.faixa + 2; i++) {
@@ -1073,7 +1150,7 @@ void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout) {
 
 	for (int i = 0; i < dados.faixa; i++) {
 		send[i].end = 0;
-		WaitForSingleObject(hThreads[i], INFINITE);
+		WaitForSingleObject(hThreads[i], 100);
 	}
 	CloseHandle(hMutexArray);
 	CloseHandle(hEventStart);

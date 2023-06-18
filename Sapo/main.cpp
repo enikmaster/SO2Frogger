@@ -1,157 +1,7 @@
-//#pragma comment( lib, "Msimg32" )
-#include <windows.h>
-#include <tchar.h>
-//#include <math.h>
-//#include <stdio.h>
-//#include <fcntl.h>
-//#include <io.h>
-#include <windowsx.h>
+#include "Header.h"
 
-
-//#define PIPE_NAME TEXT("\\\\.\\pipe\\SapoPipe")
-#define PIPE_NAME TEXT("\\\\.\\pipe\\canal")
-#define MAX_MESSAGE_SIZE 1024
-#define IDM_SINGLE_PLAYER 1001
-#define IDM_MULTI_PLAYER 1002
-#define IDM_ABOUT 1003
-#define IDM_EXIT 1004
-#define IDM_COR_LIGHT 1005
-#define IDM_COR_DARK 1006
-#define BUFSIZE 4096
-#define NUMERO_COLUNAS 20
-#define SINGLEPLAYEROPT TEXT("1\0")
-#define MOVE_RIGHT TEXT("3\0")
-#define MOVE_LEFT TEXT("4\0")
-#define MOVE_UP TEXT("5\0")
-#define MOVE_DOWN TEXT("6\0")
-
-#define SAPO TEXT('S')
-#define CARRO TEXT('C')
-#define OBSTACULO TEXT('O')
-#define DESLOCAMENTO 36
-
-// estrutura com os dados de um objeto do tabuleiro
-typedef struct OBJETO {
-	int posicaoX;
-	int posicaoY;
-	TCHAR tipo;
-};
-// estrutura de dados locais do jogo
-typedef struct LOCAL {
-	int nivel;
-	int vidas;
-	int tempo;
-	int pontuacao;
-	int numeroFaixas;
-	DWORD nBytesRead;
-	DWORD nBytesWriten;
-	TCHAR mensagem[BUFSIZE];
-	TCHAR mensagemaEnviar[2]; 
-	OBJETO objetos[200];
-	HANDLE hPipe;
-	HWND hWnd;
-	CRITICAL_SECTION cs;
-	HANDLE hEventoEnviaMensagem;
-	DWORD jumpSucesso;
-	DWORD myX, myY;
-	BOOL playing = FALSE;
-};
-
-LRESULT CALLBACK TrataEventos(HWND, UINT, WPARAM, LPARAM);
-
-void ParseMessage(LOCAL* origenate) {
-	if (wcslen(origenate->mensagem) == 0) {
-		// mensagem vazia, encerrou o servidor
-		return;
-	}
-	if (wcslen(origenate->mensagem) < 30) {
-		// mensagem com informações complementares ao jogo (terminou, ganhou, encerrou)
-	}
-	else {
-
-		// extrair a informação da mensagem com strtok
-		// nivel vidas tempo pontuação wwwwwwwwwwwwwwwwwwwwc c c c c c c c c c ...\0
-		// copia a mensagem para a estrutura LOCAL
-		TCHAR* next_token = NULL;
-		//_tcscpy_s(local.mensagem, sizeof(local.mensagem), mensagem);
-		TCHAR* token = _tcstok_s((TCHAR*)origenate->mensagem, TEXT(" "), &next_token);
-		origenate->myY = _ttoi(token);
-		token = _tcstok_s(NULL, TEXT(" "), &next_token);
-		origenate->myX = _ttoi(token);
-		// extrai o nivel
-		token = _tcstok_s(NULL, TEXT(" "), &next_token);
-		origenate->nivel = _ttoi(token);
-		// extrai as vidas
-		token = _tcstok_s(NULL, TEXT(" "), &next_token);
-		origenate->vidas = _ttoi(token);
-		// extrai o tempo
-		token = _tcstok_s(NULL, TEXT(" "), &next_token);
-		origenate->tempo = _ttoi(token);
-		// extrai a pontuação
-		token = _tcstok_s(NULL, TEXT(" "), &next_token);
-		origenate->pontuacao = _ttoi(token);
-
-		token = _tcstok_s(NULL, TEXT("\0"), &next_token);
-		origenate->numeroFaixas = 10;
-		// criar os objetos da estrutura LOCAL a partir da mensagem recebida
-		for (int y = 0; y < origenate->numeroFaixas; ++y) {
-			for (int x = 0; x < 20; ++x) {
-				origenate->objetos[20 * y + x].posicaoX = x;
-				origenate->objetos[20 * y + x].posicaoY = y;
-				origenate->objetos[20 * y + x].tipo = token[20 * y + x];
-			}
-		}
-	}
-	return;
-}
 // função para ler a mensagens do named pipe
-DWORD WINAPI lerMessages(LPVOID param) {
-	LOCAL* origem = (LOCAL*)param;
-	HANDLE hPipe = origem->hPipe;
-	BOOL res;
-	LOCAL x;
-	HANDLE hEventos[2];
-	hEventos[0] = hPipe;
-	hEventos[1] = origem->hEventoEnviaMensagem;
-	while (1)
-	{
-		DWORD dwWaitResult = WaitForMultipleObjects(2, hEventos, FALSE, INFINITE);
-		if (dwWaitResult == WAIT_OBJECT_0) // Pipe is ready to read
-		{
-			ReadFile(hPipe, origem->mensagem, BUFSIZE, &origem->nBytesRead, NULL);
-			if (x.nBytesRead > 0) {
-				ResetEvent(hEventos[0]);
-				//x = ParseMessage(x.mensagem);
-				EnterCriticalSection(&origem->cs);
-				ParseMessage(origem);
-				LeaveCriticalSection(&origem->cs);
-				InvalidateRect(origem->hWnd, // handle da janela
-					NULL, // retangulo a atualizar (NULL = toda a janela)
-					TRUE); // força a atualização da janela
-			}
-			else {
-				break;
-			}
-		}
-		else if (dwWaitResult == (WAIT_OBJECT_0 + 1)) // GoWriteEvent is signaled
-		{
-			// Reset the event
-			ResetEvent(origem->hEventoEnviaMensagem);
-			WriteFile(hPipe, origem->mensagemaEnviar, (DWORD)(_tcslen(origem->mensagemaEnviar) + 1) * sizeof(TCHAR), &origem->nBytesWriten, NULL);
-			if(origem->nBytesWriten<=0){
-				_tprintf_s(TEXT("WriteFile failed with %d.\n", GetLastError()));
-				break;
-			}
-		}
-		else if (dwWaitResult == WAIT_FAILED)
-		{
-			_tprintf_s(TEXT("WaitForMultipleObjects failed with %d.\n", GetLastError()));
-			break;
-		}
-	}
 
-	return 0;
-}
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow) {
 	HANDLE hPipe;	// hPipe é o handler do pipe
 	TCHAR szMessage[MAX_MESSAGE_SIZE];
@@ -180,6 +30,9 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	
 	
 	LOCAL local;
+	local.vidas = 3;
+	local.pontuacao = 0;
+	local.nivel = 0;
 	local.hPipe = hPipe;
 	local.cs;
 
@@ -269,7 +122,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	RECT rect;
 	LOCAL* pLocal = NULL;
 	TCHAR tecla;
-
+	
 	// Retrieve the address of the 'local' variable associated with the window handle
 	pLocal = (LOCAL*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 	static int theme = 1; // 1 = Dark, 2 = Light
@@ -322,6 +175,9 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		hSubMenu = CreatePopupMenu();
 		AppendMenu(hSubMenu, MF_STRING, IDM_SINGLE_PLAYER, TEXT("Single Player"));
 		AppendMenu(hSubMenu, MF_STRING, IDM_MULTI_PLAYER, TEXT("Multiplayer"));
+		AppendMenu(hSubMenu, MF_STRING, IDM_PAUSE_GAME, TEXT("Pausa Jogo"));
+		AppendMenu(hSubMenu, MF_STRING, IDM_RESUME_GAME, TEXT("Retomar Jogo"));
+		AppendMenu(hSubMenu, MF_STRING, IDM_RESTART_GAME, TEXT("Reset Jogo"));
 		AppendMenu(hSubMenu, MF_STRING, IDM_EXIT, TEXT("Exit"));
 		AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hSubMenu, TEXT("Jogo"));
 		SetMenu(hWnd, hMenu);
@@ -665,7 +521,13 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			}
 		} break;
 		}
-
+		TCHAR info[100];
+		_stprintf_s(info, TEXT("Nivel: %d Pontuação: %d\0"), pLocal->nivel, pLocal->pontuacao);
+		SetTextColor(hdc, RGB(255, 0, 0));
+		SetBkMode(hdc, TRANSPARENT);
+		rect.left = xBackground;
+		rect.top = yBackground - 20;
+		DrawText(hdc, info, (DWORD)(_tcslen(info)), &rect, DT_SINGLELINE | DT_NOCLIP);
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_SIZE:
@@ -724,6 +586,28 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		case IDM_COR_DARK:
 			theme = 1;
 			break;
+		case IDM_PAUSE_GAME:
+			MessageBox(hWnd, TEXT("Pausar"), TEXT("Confirmação"), MB_OK | MB_ICONERROR);
+			wcscpy_s(pLocal->mensagemaEnviar, TEXT("7\0"));
+			WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);
+			if (pLocal->nBytesWriten < 1) {
+				_tprintf_s(TEXT("O Servidor encerrou a conexão\n"));
+				ExitProcess(0);
+			}
+			Sleep(1000);
+			break;
+		case IDM_RESUME_GAME:
+			MessageBox(hWnd, TEXT("Retomar"), TEXT("Confirmação"), MB_OK | MB_ICONERROR);
+			wcscpy_s(pLocal->mensagemaEnviar, TEXT("8\0"));
+			WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);
+			if (pLocal->nBytesWriten < 1) {
+				_tprintf_s(TEXT("O Servidor encerrou a conexão\n"));
+				ExitProcess(0);
+			}
+			break;
+		case IDM_RESTART_GAME:
+			MessageBox(hWnd, TEXT("Reiniciar"), TEXT("Confirmação"), MB_OK | MB_ICONERROR);
+			break;
 		}
 		break;
 	case WM_KEYDOWN:
@@ -738,6 +622,10 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 				break;
 			wcscpy_s(pLocal->mensagemaEnviar, MOVE_UP);
 			WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);;
+			if (pLocal->nBytesWriten < 1) {
+				_tprintf_s(TEXT("O Servidor encerrou a conexão\n"));
+				ExitProcess(0);
+			}
 
 			break;
 		case VK_DOWN:
@@ -747,6 +635,10 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 				break;
 			wcscpy_s(pLocal->mensagemaEnviar, MOVE_DOWN);
 			WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);
+			if (pLocal->nBytesWriten < 1) {
+				_tprintf_s(TEXT("O Servidor encerrou a conexão\n"));
+				ExitProcess(0);
+			}
 			break;
 		case VK_RIGHT:
 			if (pLocal->myY == 0)
@@ -755,12 +647,20 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 				break;
 			wcscpy_s(pLocal->mensagemaEnviar, MOVE_RIGHT);
 			WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);
+			if (pLocal->nBytesWriten < 1) {
+				_tprintf_s(TEXT("O Servidor encerrou a conexão\n"));
+				ExitProcess(0);
+			}
 			break;
 		case VK_LEFT:
 			if (pLocal->myY == 0 || pLocal->myX == 0 || pLocal->objetos[20 * pLocal->myY + pLocal->myX - 1].tipo == SAPO)
 				break;
 			wcscpy_s(pLocal->mensagemaEnviar, MOVE_LEFT);
 			WriteFile(pLocal->hPipe, pLocal->mensagemaEnviar, (DWORD)(_tcslen(pLocal->mensagemaEnviar) + 1) * sizeof(TCHAR), &pLocal->nBytesWriten, NULL);
+			if (pLocal->nBytesWriten < 1) {
+				_tprintf_s(TEXT("O Servidor encerrou a conexão\n"));
+				ExitProcess(0);
+			}
 			break;
 		}
 		break;
@@ -784,6 +684,98 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	default:
 		return DefWindowProc(hWnd, messg, wParam, lParam);
 	}
+	return 0;
+}
+void ParseMessage(LOCAL* origenate) {
+	if (wcslen(origenate->mensagem) == 0) {
+		// mensagem vazia, encerrou o servidor
+		return;
+	}
+	if (wcslen(origenate->mensagem) < 30) {
+		// mensagem com informações complementares ao jogo (terminou, ganhou, encerrou)
+	}
+	else {
+
+		// extrair a informação da mensagem com strtok
+		// nivel vidas tempo pontuação wwwwwwwwwwwwwwwwwwwwc c c c c c c c c c ...\0
+		// copia a mensagem para a estrutura LOCAL
+		TCHAR* next_token = NULL;
+		//_tcscpy_s(local.mensagem, sizeof(local.mensagem), mensagem);
+		TCHAR* token = _tcstok_s((TCHAR*)origenate->mensagem, TEXT(" "), &next_token);
+		origenate->myY = _ttoi(token);
+		token = _tcstok_s(NULL, TEXT(" "), &next_token);
+		origenate->myX = _ttoi(token);
+		// extrai o nivel
+		token = _tcstok_s(NULL, TEXT(" "), &next_token);
+		origenate->nivel = _ttoi(token);
+		// extrai as vidas
+		token = _tcstok_s(NULL, TEXT(" "), &next_token);
+		origenate->vidas = _ttoi(token);
+		// extrai o tempo
+		token = _tcstok_s(NULL, TEXT(" "), &next_token);
+		origenate->tempo = _ttoi(token);
+		// extrai a pontuação
+		token = _tcstok_s(NULL, TEXT(" "), &next_token);
+		origenate->pontuacao = _ttoi(token);
+
+		token = _tcstok_s(NULL, TEXT("\0"), &next_token);
+		origenate->numeroFaixas = 10;
+		// criar os objetos da estrutura LOCAL a partir da mensagem recebida
+		for (int y = 0; y < origenate->numeroFaixas; ++y) {
+			for (int x = 0; x < 20; ++x) {
+				origenate->objetos[20 * y + x].posicaoX = x;
+				origenate->objetos[20 * y + x].posicaoY = y;
+				origenate->objetos[20 * y + x].tipo = token[20 * y + x];
+			}
+		}
+	}
+	return;
+}
+DWORD WINAPI lerMessages(LPVOID param) {
+	LOCAL* origem = (LOCAL*)param;
+	HANDLE hPipe = origem->hPipe;
+	BOOL res;
+	LOCAL x;
+	HANDLE hEventos[2];
+	hEventos[0] = hPipe;
+	hEventos[1] = origem->hEventoEnviaMensagem;
+	while (1)
+	{
+		DWORD dwWaitResult = WaitForMultipleObjects(2, hEventos, FALSE, INFINITE);
+		if (dwWaitResult == WAIT_OBJECT_0) // Pipe is ready to read
+		{
+			ReadFile(hPipe, origem->mensagem, BUFSIZE, &origem->nBytesRead, NULL);
+			if (x.nBytesRead > 0) {
+				ResetEvent(hEventos[0]);
+				//x = ParseMessage(x.mensagem);
+				EnterCriticalSection(&origem->cs);
+				ParseMessage(origem);
+				LeaveCriticalSection(&origem->cs);
+				InvalidateRect(origem->hWnd, // handle da janela
+					NULL, // retangulo a atualizar (NULL = toda a janela)
+					TRUE); // força a atualização da janela
+			}
+			else {
+				break;
+			}
+		}
+		else if (dwWaitResult == (WAIT_OBJECT_0 + 1)) // GoWriteEvent is signaled
+		{
+			// Reset the event
+			ResetEvent(origem->hEventoEnviaMensagem);
+			WriteFile(hPipe, origem->mensagemaEnviar, (DWORD)(_tcslen(origem->mensagemaEnviar) + 1) * sizeof(TCHAR), &origem->nBytesWriten, NULL);
+			if (origem->nBytesWriten <= 0) {
+				_tprintf_s(TEXT("WriteFile failed with %d.\n", GetLastError()));
+				break;
+			}
+		}
+		else if (dwWaitResult == WAIT_FAILED)
+		{
+			_tprintf_s(TEXT("WaitForMultipleObjects failed with %d.\n", GetLastError()));
+			break;
+		}
+	}
+
 	return 0;
 }
 

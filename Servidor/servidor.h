@@ -34,13 +34,19 @@ BOOL ConnectToNewClient(HANDLE, LPOVERLAPPED);
 void GetAnswerToRequest(LPPIPEINST);
 // threads
 void lancaThread(FaixaVelocity dados, COORD posI, HANDLE hStdout);
-void PreencheSapos(SAPO* sapos, const int x);
-void PreencheNiveis(Nivel* niveis, SAPO* sapos);
-
+DWORD WINAPI ThreadsFaixa(LPVOID param);
+DWORD WINAPI EstadoTabuleiro(LPVOID param);
+DWORD WINAPI LeComandosOperadoresThread(LPVOID param);
+DWORD WINAPI ThreadVeTeclado(LPVOID param);
+DWORD WINAPI ControlaPipesF(LPVOID param);
+DWORD WINAPI ThreadsParaSapo(LPVOID param);
+DWORD WINAPI ThreadTempo(LPVOID param);
 //
 void DesligaELiga(DWORD);
 BOOL ConnectNovoCliente(HANDLE, LPOVERLAPPED);
 void ReceberResposta(LPPIPEINST);
+void PreencheSapos(SAPO* sapos, const int x);
+void PreencheNiveis(Nivel* niveis, SAPO* sapos);
 
 
 

@@ -38,13 +38,17 @@ DWORD WINAPI GetInput(LPVOID param) {
 	pos.X = 0;
 	pos.Y = 5;
 	DWORD flag = 0;
+	HANDLE hEventos[2];
+	hEventos[0] = pdata->controlingData.hEvent;
+	hEventos[1] = OpenEvent(EVENT_ALL_ACCESS, FALSE, TERMINOUJOGO);
 	const char* message = "FECHA";
 	do {
-		DWORD temp = WaitForSingleObject(pdata->controlingData.hEvent, 10000);
-		if (temp == WAIT_TIMEOUT) {
-			_tprintf_s(TEXT("\nServidor foi encerrado!\n"));
+		DWORD temp = WaitForMultipleObjects(2,hEventos, FALSE, INFINITE);
+		if (temp == WAIT_OBJECT_0 + 1) {
+			_tprintf_s(TEXT("O servidor encerrou o jogo!\n"));
 			break;
 		}
+		
 		temp = WaitForSingleObject(pdata->controlingData.hMutex, 10000);
 		if (temp == WAIT_TIMEOUT) {
 			_tprintf_s(TEXT("\nServidor foi encerrado!\n"));
@@ -68,6 +72,6 @@ DWORD WINAPI GetInput(LPVOID param) {
 	CloseHandle(hMapFile);
 	CloseHandle(hEvent);
 	CloseHandle(hMutex);
-	if (flag == -1) CloseHandle(pdata->hMutex);
+	CloseHandle(pdata->hMutex);
 	ExitThread(1);
 }

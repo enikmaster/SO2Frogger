@@ -7,7 +7,9 @@ void PreencheSapos(SAPO* x, const int dx) {
 		x[i].move = FALSE;
 		x[i].activo = FALSE;
 		x[i].vidas = VIDAS;
+		x[i].StandBy = FALSE;
 		x[i].temp = 0;
+		x[i].lvl = 1;
 		x[i].score = 0;
 		x[i].pos_atual.X = dx+1; 
 		if (i == 0)

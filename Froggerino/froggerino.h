@@ -30,6 +30,7 @@
 #define NSAPOS 2
 #define TERMINOUJOGO TEXT("TERMINOUJOGO")
 #define TERINOUTEMPO TEXT("TERMINOUTEMPO")
+#define TERMINOUJOGO TEXT("TERMINOUJOGO")
 #define VIDAS 3
 #define NIVEISDEJOGO 10
 #define TEMPO 60000
@@ -77,6 +78,7 @@ FROGGERINO_API typedef struct OBJECTO { // objetos do tabuleiro
 FROGGERINO_API typedef struct SAPO {
     BOOL activo;
     BOOL move;
+    BOOL StandBy;
     BOOL directionCOLUMN;
     BOOL directionROW;
     unsigned int vidas;
@@ -84,6 +86,9 @@ FROGGERINO_API typedef struct SAPO {
     unsigned int score;
     pos pos_atual;
     pos pos_inicial;
+    int lastX;
+    int lastY;
+    int lvl;
     TCHAR* name;
 } SAPO;
 
@@ -127,6 +132,8 @@ FROGGERINO_API typedef struct Eventos_Mutexs {
     HANDLE hEventoRestartGame; //Reiniciar jogo
     HANDLE hEventoPausaJogo; //Pausa jogo
     HANDLE hEventoResumegame;
+    HANDLE hEventoNextLevel;
+    BOOL NextLevel;
     CRITICAL_SECTION x;
 }Eventos_Mutexs;
 FROGGERINO_API typedef struct _SHAREDMEM { // memória partilhada

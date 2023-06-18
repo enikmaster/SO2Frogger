@@ -150,9 +150,7 @@ void setDadosEstrutura(FaixaVelocity* dados) {
 		// RegQueryValueExA(temp, keyValueNameF, NULL, NULL, (LPBYTE)&dados->faixa, &size)
 		// RegQueryValueExA(temp, keyValueNameV, NULL, NULL, (LPBYTE)&dados->velocity, &size)
 		if (RegQueryValueExA(temp, keyValueNameF, NULL, NULL, (LPBYTE)&dados->faixa, &size) == ERROR_SUCCESS)
-			_tprintf_s(TEXT("Faixas: %d\n"), dados->faixa);
 		if (RegQueryValueExA(temp, keyValueNameV, NULL, NULL, (LPBYTE)&dados->velocity, &size) == ERROR_SUCCESS) {
-			_tprintf_s(TEXT("Velocity: %d\n"), dados->velocity);
 			return;
 		}
 	}

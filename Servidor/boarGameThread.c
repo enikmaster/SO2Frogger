@@ -510,6 +510,7 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 				ZeroMemory(&pdata->pipeMgm[i].oOverlap, sizeof(OVERLAPPED));
 				pdata->pipeMgm[i].oOverlap.hEvent = pdata->pipeMgm[i].hEvent;
 				ReadFile(pdata->pipeMgm[i].hPipeInst, pdata->pipeMgm[i].chRequest, BUFSIZE, &pdata->pipeMgm[i].cbRead, &pdata->pipeMgm[i].oOverlap);
+				_tprintf_s(TEXT("Recebi connection\n"));
 			}
 			else {
 				if (pdata->pipeMgm[i].cbRead > 0 && i != 2 && flagg == 1) {
@@ -564,6 +565,8 @@ DWORD WINAPI ControlaPipesF(LPVOID param) {
 							ZeroMemory(&pdata->pipeMgm[i].oOverlap, sizeof(OVERLAPPED));
 							pdata->pipeMgm[i].oOverlap.hEvent = pdata->pipeMgm[i].hEvent;
 							ReadFile(pdata->pipeMgm[i].hPipeInst, pdata->pipeMgm[i].chRequest, BUFSIZE, &pdata->pipeMgm[i].cbRead, &pdata->pipeMgm[i].oOverlap);
+							if (i == 0)
+								break;
 						}
 					}
 					flagg = 1;
@@ -594,6 +597,7 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 	DWORD infoFormacao = -1;
 	DWORD LposX = 0;
 	DWORD LposY = 0;
+	BOOL FIRST = TRUE;
 	if (pdata->sapoAControlar == 0) {
 		sapoAcontrolar = pdata->saposa;
 		sapoAcontrolar->activo = TRUE;
@@ -611,7 +615,16 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 	LposX = sapoAcontrolar->pos_atual.X;
 	LposY = sapoAcontrolar->pos_atual.Y;
 	while (1) {
-		X = WaitForSingleObject(pdata->pipeMgm[z].hEventoThread, 10000);
+		if (FIRST)
+		{
+			X = WaitForSingleObject(pdata->pipeMgm[z].hEventoThread, INFINITE);
+			FIRST = FALSE;
+		}
+		else
+		{
+			X = WaitForSingleObject(pdata->pipeMgm[z].hEventoThread, 10000);
+			_tprintf_s(TEXT("Foi do time out\n"));
+		}
 		ResetEvent(pdata->pipeMgm[z].hEventoThread);
 		if (X == WAIT_TIMEOUT) {
 			sapoAcontrolar->pos_atual.X = sapoAcontrolar->pos_inicial.X;
@@ -621,19 +634,15 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 			LeaveCriticalSection(&pdata->gere->x);
 			continue;
 		}
-		if (X >= WAIT_OBJECT_0)
-			X -= WAIT_OBJECT_0;
-		
 		else {
 			if(pdata->pipeMgm[z].chRequest > 0)
 			{
 				EnterCriticalSection(&pdata->gere->x);
 				wsprintf(buf, TEXT("%s"), pdata->pipeMgm[z].chRequest);
-				infoFormacao = _tstoi(buf[0]);
+				infoFormacao = _ttoi(buf);
 				LposX = sapoAcontrolar->pos_atual.X;
 				LposY = sapoAcontrolar->pos_atual.Y;
-				wsprintf(buf, TEXT("%s"), pdata->pipeMgm[z].chRequest);
-				infoFormacao = _tstoi(buf[0]);
+				_tprintf(TEXT("Chegou cá, e tem o valor: %d\n"), infoFormacao);
 				switch (infoFormacao)
 				{
 					case 0:
@@ -743,7 +752,7 @@ DWORD WINAPI ThreadsParaSapo(LPVOID param) {
 					}
 				}
 				Sleep(30);
-				SetEvent(pdata->gere->hEventoEscreveSapos); //avisa que é para enviar ao tabuleiro nova informacoes
+				//SetEvent(pdata->gere->hEventoEscreveSapos); //avisa que é para enviar ao tabuleiro nova informacoes
 				LeaveCriticalSection(&pdata->gere->x);
 			};
 		}

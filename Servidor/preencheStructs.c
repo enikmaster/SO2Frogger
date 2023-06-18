@@ -4,7 +4,7 @@
 void PreencheSapos(SAPO* x, const int dx) {
 	DWORD nRepetePos = rand() % (20);
 	for (int i = 0; i < NSAPOS; i++) {
-		x[i].move = TRUE;
+		x[i].move = FALSE;
 		x[i].activo = FALSE;
 		x[i].vidas = VIDAS;
 		x[i].temp = 0;

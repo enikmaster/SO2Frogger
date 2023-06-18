@@ -19,6 +19,7 @@
 #define IDM_COR_DARK 1006
 #define BUFSIZE 4096
 #define NUMERO_COLUNAS 20
+#define SINGLEPLAYEROPT TEXT("1\0")
 #define MOVE_RIGHT TEXT("3\0")
 #define MOVE_LEFT TEXT("4\0")
 #define MOVE_UP TEXT("5\0")
@@ -67,6 +68,7 @@ void ParseMessage(LOCAL* origenate) {
 		// mensagem com informações complementares ao jogo (terminou, ganhou, encerrou)
 	}
 	else {
+
 		// extrair a informação da mensagem com strtok
 		// nivel vidas tempo pontuação wwwwwwwwwwwwwwwwwwwwc c c c c c c c c c ...\0
 		// copia a mensagem para a estrutura LOCAL
@@ -77,7 +79,7 @@ void ParseMessage(LOCAL* origenate) {
 		token = _tcstok_s(NULL, TEXT(" "), &next_token);
 		origenate->myX = _ttoi(token);
 		// extrai o nivel
-		token = _tcstok_s((TCHAR*)origenate->mensagem, TEXT(" "), &next_token);
+		token = _tcstok_s(NULL, TEXT(" "), &next_token);
 		origenate->nivel = _ttoi(token);
 		// extrai as vidas
 		token = _tcstok_s(NULL, TEXT(" "), &next_token);
@@ -108,44 +110,51 @@ DWORD WINAPI lerMessages(LPVOID param) {
 	HANDLE hPipe = origem->hPipe;
 	BOOL res;
 	LOCAL x;
-	OVERLAPPED ov;
+	HANDLE hEventos[2];
+	hEventos[0] = hPipe;
+	hEventos[1] = origem->hEventoEnviaMensagem;
+	while (1)
+	{
+		DWORD dwWaitResult = WaitForMultipleObjects(2, hEventos, FALSE, INFINITE);
+		if (dwWaitResult == WAIT_OBJECT_0) // Pipe is ready to read
+		{
+			ReadFile(hPipe, x.mensagem, BUFSIZE, &x.nBytesRead, NULL);
+			if (x.nBytesRead > 0) {
 
-	HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-	if (hEvent == NULL) {
-		_tprintf_s(TEXT("Erro na criação do evento\n"));
-		ExitProcess(-1);
-	}
-	do {
-		ZeroMemory(&x, sizeof(x));
-		ZeroMemory(&ov, sizeof(ov));
-		ov.hEvent = hEvent;
-		res = ReadFile(hPipe, x.mensagem, BUFSIZE, &x.nBytesRead, &ov);
-		if (res)
-			;
-		else if (GetLastError() == ERROR_IO_PENDING) {
-			//vai esperar que o evento seja sinalizado em overlapped
-			WaitForSingleObject(hEvent, INFINITE);
-			GetOverlappedResult(hPipe, &ov, &x.nBytesRead, FALSE);
+				//x = ParseMessage(x.mensagem);
+				EnterCriticalSection(&origem->cs);
+				wcscpy_s(origem->mensagem, x.mensagem);
+				origem->nBytesRead = x.nBytesRead;
+				ParseMessage(origem);
+				LeaveCriticalSection(&origem->cs);
+				InvalidateRect(origem->hWnd, // handle da janela
+					NULL, // retangulo a atualizar (NULL = toda a janela)
+					TRUE); // força a atualização da janela
+			}
+			else {
+				break;
+			}
 		}
-		else
+		else if (dwWaitResult == (WAIT_OBJECT_0 + 1)) // GoWriteEvent is signaled
+		{
+			// Reset the event
+			ResetEvent(origem->hEventoEnviaMensagem);
+			WriteFile(hPipe, origem->mensagemaEnviar, (DWORD)(_tcslen(origem->mensagemaEnviar) + 1) * sizeof(TCHAR), &origem->nBytesWriten, NULL);
+			if(origem->nBytesWriten<=0){
+				_tprintf_s(TEXT("WriteFile failed with %d.\n", GetLastError()));
+				break;
+			}
+		}
+		else if (dwWaitResult == WAIT_FAILED)
+		{
+			_tprintf_s(TEXT("WaitForMultipleObjects failed with %d.\n", GetLastError()));
 			break;
-		if (x.nBytesRead > 0) {
-			
-			//x = ParseMessage(x.mensagem);
-			EnterCriticalSection(&origem->cs);
-			wcscpy_s(origem->mensagem, x.mensagem);
-			origem->nBytesRead = x.nBytesRead;
-			ParseMessage(origem);
-			LeaveCriticalSection(&origem->cs);
-			InvalidateRect(origem->hWnd, // handle da janela
-				NULL, // retangulo a atualizar (NULL = toda a janela)
-				TRUE); // força a atualização da janela
 		}
+	}
 
-
-	} while (x.nBytesRead > 0);   // NPipe foi encerrado pela thread inicial...
-	ExitThread(0);
+	return 0;
 }
+/*
 DWORD WINAPI enviaComandos(LPVOID param) {
 		LOCAL* origem = (LOCAL*)param;
 		HANDLE hPipe = origem->hPipe;
@@ -171,10 +180,11 @@ DWORD WINAPI enviaComandos(LPVOID param) {
 			}
 			else
 				break;
+			res  = ReadFile(hPipe, origem->mensagem, BUFSIZE, &origem->nBytesRead, &ov);
 			ResetEvent(origem->hEventoEnviaMensagem);
 		} while (origem->nBytesWriten > 0);   // NPipe foi encerrado pela thread inicial...
 		ExitThread(0);
-}
+} */
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow) {
 	HANDLE hPipe;	// hPipe é o handler do pipe
 	TCHAR szMessage[MAX_MESSAGE_SIZE];
@@ -263,7 +273,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	local.hWnd = hWnd;
 	SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)&local);
 	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)lerMessages, (LPVOID)&local, 0, NULL); 
-	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)enviaComandos, (LPVOID)&local, 0, NULL);
+	//CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)enviaComandos, (LPVOID)&local, 0, NULL);
 	//CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)enviaMensagens, (LPVOID)&local, 0, NULL); //Thread Mensagem	string direita ou esquerda ou cima ou baixo
 	// ============================================================================
 	// 4. Mostra a janela
@@ -725,7 +735,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		case IDM_SINGLE_PLAYER:
 			if(!pLocal->playing) {
 				pLocal->playing = TRUE;
-				wcscpy_s(pLocal->mensagemaEnviar, TEXT("0\0"));
+				wcscpy_s(pLocal->mensagemaEnviar, SINGLEPLAYEROPT);
 				SetEvent(pLocal->hEventoEnviaMensagem);
 			}
 
@@ -748,9 +758,8 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			break;
 		}
 		break;
-	case WM_CHAR:
-		tecla = (TCHAR)wParam;
-		switch (tecla) {
+	case WM_KEYDOWN:
+		switch (wParam) {
 		case VK_UP:
 			// verificar se é possivel andar nesta direção
 			// não esquecer CriticalSection
@@ -760,6 +769,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 				break;
 			wcscpy_s(pLocal->mensagemaEnviar, MOVE_UP);
 			SetEvent(pLocal->hEventoEnviaMensagem);
+			ExitThread(1);
 			break;
 		case VK_DOWN:
 			if (pLocal->myY == 0 || pLocal->myY == pLocal->numeroFaixas)
